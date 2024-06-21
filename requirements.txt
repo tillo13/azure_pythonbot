@@ -1,0 +1,15 @@
+aiohttp  
+requests  
+python-dotenv  
+botbuilder-core  
+botbuilder-schema  
+botframework-connector  
+botframework-streaming  
+openai  
+PyPDF2  
+tiktoken  
+azure.identity
+python-docx
+gunicorn
+botbuilder-integration-aiohttp>=4.15.0
+pytz

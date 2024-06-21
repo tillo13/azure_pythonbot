@@ -1,0 +1,43 @@
+# Default Messages  
+MSG_ERROR = "**The bot encountered an error or bug.**"  
+MSG_FIX_BOT = "To continue to run this bot, please fix the bot source code."  
+MSG_IMAGE_RECEIVED = "Uploaded file type detected: **Image file**! Give me a moment to analyze it please..."  
+MSG_IMAGE_DETAILS = "**Image processing complete. Here are the details:**"  
+MSG_IMAGE_ERROR = "Sorry, I couldn't download or process the image."  
+MSG_TEXT_RECEIVED = "Uploaded file type detected: **TXT**!"  
+MSG_START_SUMMARIZATION = "**Starting the summarization process... This may take a few moments.**"  
+MSG_CHUNK_PROCESSING = (  
+    "**The text will be divided into smaller chunks for processing due to the token limits of the OpenAI model.**\n"  
+    "Each chunk will be processed individually using the 'chunk_text' function, which splits the text based on the maximum token size allowed. "  
+    "The chunks will then be processed through the OpenAI API, and finally, the results will be combined for the final summary. "  
+    "Please wait as this involves multiple API calls and data handling fun..."  
+)  
+MSG_SUMMARIZATION_COMPLETE = "**Summarization complete. Here is the summary:**"  
+MSG_SUMMARIZATION_ERROR = "Sorry, I couldn't summarize the text."  
+MSG_TEXT_ERROR = "Sorry, I couldn't download or process the text file."  
+MSG_PDF_RECEIVED = "Uploaded file type detected: **PDF**!"  
+MSG_PDF_ERROR = "Sorry, I couldn't extract text from the PDF file."  
+MSG_DOWNLOAD_PDF_ERROR = "Sorry, I couldn't download the PDF file."  
+MSG_EVENT_DETECTED = "[**{} event detected**]"  
+  
+# Slack Specific Messages  
+SLACK_MSG_ERROR = "```[slack] The bot encountered an error or bug.```"  
+SLACK_MSG_FIX_BOT = "[slack] To continue to run this bot, please fix the bot source code."  
+SLACK_MSG_IMAGE_RECEIVED = "```[slack] Uploaded file type detected: *Image file*! \n_Give me a moment to analyze it please..._```"  
+SLACK_MSG_IMAGE_DETAILS = "```[slack] Image processing complete. Here are the details:```"  
+SLACK_MSG_IMAGE_ERROR = "[slack] Sorry, I couldn't download or process the image."  
+SLACK_MSG_TEXT_RECEIVED = "[slack] Uploaded file type detected: *TXT*!"  
+SLACK_MSG_START_SUMMARIZATION = "```[slack] Starting the summarization process... This may take a few moments.```"  
+SLACK_MSG_CHUNK_PROCESSING = (  
+    "```[slack] The text will be divided into smaller chunks for processing due to the token limits of the OpenAI model.\n"  
+    "Each chunk will be processed individually using the 'chunk_text' function, which splits the text based on the maximum token size allowed. "  
+    "The chunks will then be processed through the OpenAI API, and finally, the results will be combined for the final summary. "  
+    "Please wait as this involves multiple API calls and data handling fun...```"  
+)  
+SLACK_MSG_SUMMARIZATION_COMPLETE = "```[slack] Summarization complete. Here is the summary:```"  
+SLACK_MSG_SUMMARIZATION_ERROR = "[slack]Sorry, I couldn't summarize the text."  
+SLACK_MSG_TEXT_ERROR = "[slack] Sorry, I couldn't download or process the text file."  
+SLACK_MSG_PDF_RECEIVED = "[slack] Uploaded file type detected: *PDF*!"  
+SLACK_MSG_PDF_ERROR = "[slack] Sorry, I couldn't extract text from the PDF file."  
+SLACK_MSG_DOWNLOAD_PDF_ERROR = "[slack] Sorry, I couldn't download the PDF file."  
+SLACK_MSG_EVENT_DETECTED = "[*{} event detected*]"  

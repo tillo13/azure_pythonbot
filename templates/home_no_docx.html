@@ -1,0 +1,147 @@
+<!DOCTYPE html>  
+<html>  
+<head>  
+    <title>Teradata Azure GPT-4o Bot</title>  
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">  
+    <script>  
+        function showMessage(role, content) {  
+            const responseDiv = document.getElementById('response');  
+            const messageDiv = document.createElement('div');  
+            messageDiv.className = `message ${role}`;  
+              
+            // Convert newlines to <br> and lists to <ul> or <ol>  
+            content = content.replace(/\n/g, '<br>');  
+            content = content.replace(/(\d+)\.\s/g, '<br><strong>$1.</strong> '); // Convert numbered lists  
+            content = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); // Convert **bold** text  
+  
+            messageDiv.innerHTML = `<p><strong>${role === 'user' ? 'You' : 'Bot'}:</strong> ${content}</p>`;  
+            responseDiv.appendChild(messageDiv);  
+            responseDiv.scrollTop = responseDiv.scrollHeight; // Auto-scroll to the bottom  
+        }  
+  
+        function showTypingIndicator() {  
+            const responseDiv = document.getElementById('response');  
+            const typingIndicator = document.createElement('div');  
+            typingIndicator.className = 'typing-indicator';  
+            typingIndicator.innerHTML = '<span></span><span></span><span></span>';  
+            responseDiv.appendChild(typingIndicator);  
+        }  
+  
+        function removeTypingIndicator() {  
+            const responseDiv = document.getElementById('response');  
+            const typingIndicator = responseDiv.querySelector('.typing-indicator');  
+            if (typingIndicator) {  
+                responseDiv.removeChild(typingIndicator);  
+            }  
+        }  
+  
+        function sendMessage(message = null, file = null) {  
+            const messageInput = document.getElementById('message');  
+            if (!message && !file) {  
+                message = messageInput.value;  
+            }  
+  
+            if (!message && !file) return;  
+  
+            const sendButton = document.querySelector('.chat-input button');  
+            const spinner = document.querySelector('.spinner');  
+            sendButton.disabled = true;  
+            spinner.style.display = 'block';  
+  
+            const formData = new FormData();  
+            if (message) formData.append('message', message);  
+            if (file) formData.append('file', file);  
+  
+            if (message) {  
+                showMessage('user', message);  
+            }  
+  
+            if (file) {  
+                showMessage('user', `You attached: ${file.name}`);  
+                const fileType = file.type;  
+  
+                if (fileType.startsWith('image/')) {  
+                    showMessage('bot', 'Uploaded file type detected: IMAGE! Processing the image...');  
+                } else if (fileType === 'text/plain') {  
+                    showMessage('bot', 'Uploaded file type detected: TXT! Starting the summarization process… This may take a few moments.');  
+                    showMessage('bot', 'The text will be divided into smaller chunks for processing due to the token limits of the OpenAI model. Each chunk will be processed individually using the ‘chunk_text’ function, which splits the text based on the maximum token size allowed. The chunks will then be processed through the OpenAI API, and finally, the results will be combined for the final summary. Please wait as this involves multiple API calls and data handling fun…');  
+                } else if (fileType === 'application/pdf') {  
+                    showMessage('bot', 'Uploaded file type detected: PDF! Starting the summarization process… This may take a few moments.');  
+                    showMessage('bot', 'The text will be divided into smaller chunks for processing due to the token limits of the OpenAI model. Each chunk will be processed individually using the ‘chunk_text’ function, which splits the text based on the maximum token size allowed. The chunks will then be processed through the OpenAI API, and finally, the results will be combined for the final summary. Please wait as this involves multiple API calls and data handling fun…');  
+                } else {  
+                    showMessage('bot', 'Uploaded file type detected: Unknown! Attempting to process...');  
+                }  
+            }  
+  
+            showTypingIndicator();  
+  
+            fetch('/chat', {  
+                method: 'POST',  
+                body: formData  
+            })  
+            .then(response => response.json())  
+            .then(data => {  
+                removeTypingIndicator();  
+  
+                const botMessageDiv = document.createElement('div');  
+                botMessageDiv.className = 'message bot';  
+                let formattedResponse = data.response.replace(/\n/g, '<br>'); // Convert newlines to <br>  
+                formattedResponse = formattedResponse.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); // Convert **bold** text  
+                botMessageDiv.innerHTML = `<p><strong>Bot:</strong> ${formattedResponse}</p><p class="breadcrumb"><i>${data.timestamp} | Round Trip Time: ${data.round_trip_time}s | Total Tokens: ${data.total_tokens} | Completion Tokens: ${data.completion_tokens} | Prompt Tokens: ${data.prompt_tokens} | Estimated Cost: $${data.estimated_cost} | Model: ${data.model}</i></p>`;  
+                const responseDiv = document.getElementById('response');  
+                responseDiv.appendChild(botMessageDiv);  
+  
+                messageInput.value = '';  
+                document.getElementById('file-input').value = ''; // Clear file input  
+                responseDiv.scrollTop = responseDiv.scrollHeight; // Auto-scroll to the bottom  
+  
+                sendButton.disabled = false;  
+                spinner.style.display = 'none';  
+            })  
+            .catch(error => {  
+                console.error('Error:', error);  
+                removeTypingIndicator();  
+                sendButton.disabled = false;  
+                spinner.style.display = 'none';  
+            });  
+        }  
+  
+        document.addEventListener('DOMContentLoaded', (event) => {  
+            const messageInput = document.getElementById('message');  
+            messageInput.addEventListener('keypress', function(event) {  
+                if (event.key === 'Enter') {  
+                    event.preventDefault();  
+                    sendMessage();  
+                }  
+            });  
+  
+            const fileInput = document.getElementById('file-input');  
+            fileInput.addEventListener('change', function(event) {  
+                if (fileInput.files.length > 0) {  
+                    const file = fileInput.files[0];  
+                    sendMessage(null, file);  
+                }  
+            });  
+        });  
+    </script>  
+</head>  
+<body>  
+    <div class="chat-container">  
+        <div class="chat-header">  
+            <h1>Teradata Azure Bot</h1>  
+            <p>OpenAI GPT-4o, reads images + chunks large docs + AI chat.</p>  
+        </div>  
+        <div id="response" class="chat-window"></div>  
+        <div class="chat-input">  
+            <input type="text" id="message" placeholder="Enter your message" />  
+            <input type="file" id="file-input" style="display: none;" />  
+            <label for="file-input" class="file-input-label">  
+                <img src="{{ url_for('static', filename='paperclip.jpg') }}" alt="Attach file" />  
+            </label>  
+            <button onclick="sendMessage()">Send  
+                <div class="spinner"></div>  
+            </button>  
+        </div>  
+    </div>  
+</body>  
+</html>  
