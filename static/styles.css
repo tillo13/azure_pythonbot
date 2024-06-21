@@ -1,0 +1,224 @@
+/* styles.css */  
+  
+body {  
+    font-family: Arial, sans-serif;  
+    display: flex;  
+    justify-content: center;  
+    align-items: center;  
+    height: 100vh;  
+    background-color: #E6E6E6; /* Teradata Light Gray */  
+    margin: 0;  
+}  
+  
+.chat-container {  
+    display: flex;  
+    flex-direction: column;  
+    width: 100%;  
+    height: 100%;  
+    background: white;  
+    border-radius: 0;  
+    box-shadow: none;  
+}  
+  
+.chat-header {  
+    padding: 5px; /* Reduced padding */  
+    background: #BCCED9; /* Duller shade of blue */  
+    color: white;  
+    border-radius: 0;  
+    text-align: center;  
+    font-size: 1.2em; /* Smaller font size for header */  
+    height: auto; /* Adjust height */  
+}  
+  
+.chat-header h1 {  
+    margin: 0; /* Remove margin */  
+    font-size: 1.5em; /* Larger font size for header */  
+}  
+  
+.chat-header p {  
+    margin: 0; /* Remove margin */  
+    font-size: 0.9em; /* Smaller font size for description */  
+}  
+  
+.chat-window {  
+    padding: 20px;  
+    flex: 1;  
+    overflow-y: auto;  
+    border-bottom: 1px solid #ddd;  
+    display: flex;  
+    flex-direction: column;  
+}  
+  
+.chat-input {  
+    display: flex;  
+    padding: 10px;  
+    border-top: 1px solid #ddd; /* Added border-top for visual separation */  
+    align-items: center; /* Align items vertically in the center */  
+}  
+  
+.chat-input input[type="text"] {  
+    flex: 1;  
+    padding: 10px;  
+    border: 1px solid #ddd;  
+    border-radius: 4px;  
+    margin-right: 10px;  
+}  
+  
+.chat-input button {  
+    padding: 10px 20px;  
+    border: none;  
+    background: #F37421; /* Teradata Orange */  
+    color: white;  
+    border-radius: 4px;  
+    cursor: pointer;  
+    position: relative;  
+    display: flex;  
+    align-items: center; /* Align items vertically in the center */  
+    justify-content: center; /* Center the content horizontally */  
+}  
+  
+.chat-input button:disabled {  
+    background: #E6E6E6; /* Light Gray */  
+}  
+  
+.spinner {  
+    border: 2px solid #E6E6E6; /* Light Grey */  
+    border-top: 2px solid #1A82C3; /* Teradata Blue */  
+    border-radius: 50%;  
+    width: 12px;  
+    height: 12px;  
+    animation: spin 1s linear infinite;  
+    position: absolute;  
+    top: 50%;  
+    left: 50%;  
+    transform: translate(-50%, -50%);  
+    display: none;  
+}  
+  
+@keyframes spin {  
+    0% { transform: rotate(0deg); }  
+    100% { transform: rotate(360deg); }  
+}  
+  
+.typing-indicator {  
+    display: flex;  
+    align-items: center;  
+    margin-bottom: 10px;  
+    padding: 10px;  
+    background: #F8D7DA; /* Light Red */  
+    border-radius: 4px;  
+    max-width: 80%;  
+    align-self: flex-start; /* Align typing indicator to the left */  
+}  
+  
+.typing-indicator span {  
+    display: inline-block;  
+    width: 8px;  
+    height: 8px;  
+    margin: 0 2px;  
+    background: #4D4D4D; /* Teradata Dark Gray */  
+    border-radius: 50%;  
+    animation: blink 1.4s infinite both;  
+}  
+  
+.typing-indicator span:nth-child(1) {  
+    animation-delay: 0.2s;  
+}  
+  
+.typing-indicator span:nth-child(2) {  
+    animation-delay: 0.4s;  
+}  
+  
+.typing-indicator span:nth-child(3) {  
+    animation-delay: 0.6s;  
+}  
+  
+@keyframes blink {  
+    0%, 80%, 100% { opacity: 0; }  
+    40% { opacity: 1; }  
+}  
+  
+.message {  
+    margin-bottom: 10px;  
+    padding: 10px;  
+    border-radius: 4px;  
+    max-width: 75%; /* Adjusted max-width for better spacing */  
+    font-size: 1em; /* Ensure readable font size */  
+    position: relative;  
+}  
+  
+.message.user {  
+    background: #D1ECF1; /* Light Blue */  
+    align-self: flex-end; /* Align user messages to the right */  
+    border: 1px solid #A1C1CC; /* Duller border color */  
+}  
+  
+.message.bot {  
+    background: #FFF3CD; /* Light Yellow */  
+    align-self: flex-start; /* Align bot messages to the left */  
+    border: 1px solid #E6DBA2; /* Duller border color */  
+}  
+  
+.timestamp {  
+    font-size: 0.8em;  
+    color: #888;  
+    margin-top: 4px;  
+}  
+  
+.breadcrumb {  
+    font-size: 0.7em;  
+    color: #666;  
+    text-align: right;  
+    font-style: italic;  
+    margin-top: 10px; /* Added margin-top for better separation */  
+}  
+  
+.file-input-label {  
+    display: inline-block;  
+    cursor: pointer;  
+    margin-right: 10px; /* Add some space between the icon and the text input */  
+    height: 100%; /* Make the label take the full height of the input field */  
+    display: flex;  
+    align-items: center; /* Align items vertically in the center */  
+}  
+  
+.file-input-label img {  
+    height: 24px; /* Set a fixed height for the image */  
+    width: auto; /* Maintain aspect ratio */  
+    vertical-align: middle;  
+}  
+  
+/* Code block styling */  
+.code-block-wrapper {  
+    position: relative;  
+}  
+  
+pre {  
+    background-color: #F5F5F5; /* Light gray background */  
+    padding: 10px;  
+    border-radius: 4px;  
+    overflow-x: auto; /* Horizontal scroll for long code lines */  
+}  
+  
+code {  
+    font-family: 'Courier New', Courier, monospace;  
+    font-size: 0.95em;  
+    color: #333; /* Darker text color for better readability */  
+}  
+  
+.copy-button {  
+    position: absolute;  
+    top: 5px;  
+    right: 5px;  
+    background-color: #F37421; /* Teradata Orange */  
+    color: white;  
+    border: none;  
+    border-radius: 3px;  
+    padding: 5px;  
+    cursor: pointer;  
+    font-size: 0.8em;  
+}  
+  
+.copy-button:hover {  
+    background-color: #D95B1A; /* Darker shade of orange */  
+}  

@@ -1,0 +1,18 @@
+{
+    "name": "azure_pythonbot",
+    "description": "",
+    "services": [
+        {
+            "type": "endpoint",
+            "name": "http://localhost:3978/api/messages",
+            "id": "2b6be0e0-2a82-11ef-9e53-892537819ff6",
+            "appId": "58d4f82a-a026-4ac3-94b3-80bb7f778373",
+            "appPassword": "a_E8Q~T-9euj529UCbNrJW799kY22qUNL.lTYdk4",
+            "endpoint": "http://localhost:3978/api/messages"
+        }
+    ],
+    "padlock": "",
+    "version": "2.0",
+    "path": "/Users/andrew.tillo/Desktop/etc/projects/azure_pythonbot/azure_pythonbot.bot",
+    "overrides": null
+}
