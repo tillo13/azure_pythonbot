@@ -1,6 +1,8 @@
 # app.py  
 
+
 # Load environment variables from .env file  
+from dotenv import load_dotenv 
 load_dotenv()  
 
 
@@ -9,7 +11,7 @@ import logging
 from aiohttp import web  
 from botbuilder.core import BotFrameworkAdapter, BotFrameworkAdapterSettings, TurnContext  
 from botbuilder.schema import Activity, ActivityTypes  
-from dotenv import load_dotenv  
+ 
 from utils.openai_utils import get_openai_response  
 from message_handlers.slack_handler import handle_slack_message  
 from message_handlers.default_handler import handle_default_message  
