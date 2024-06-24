@@ -1,6 +1,6 @@
 from botbuilder.core import TurnContext  
 import logging  
-#from utils.jira_utils import fetch_issue_details  
+from utils.jira_utils import fetch_issue_details  
 from utils.footer_utils import generate_footer  
 from utils.slack_utils import convert_to_slack_mrkdwn, create_slack_message  
 import time  

@@ -1,4 +1,9 @@
 # app.py  
+
+# Load environment variables from .env file  
+load_dotenv()  
+
+
 import os  
 import logging  
 from aiohttp import web  
@@ -17,9 +22,7 @@ import json
 # Configure logging  
 logging.basicConfig(level=logging.DEBUG)  
   
-# Load environment variables from .env file  
-load_dotenv()  
-  
+ 
 # Configuration  
 APP_ID = os.getenv("MICROSOFT_APP_ID")  
 APP_PASSWORD = os.getenv("MICROSOFT_APP_PASSWORD")  
