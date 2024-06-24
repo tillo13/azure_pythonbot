@@ -149,8 +149,9 @@ def get_openai_image_response(image_data_url):
         ]  
           
         # Log the message payload  
-        print("Sending the following payload to OpenAI:")  
-        print(message_text)  
+        #print("Sending the following payload to OpenAI:")  
+        print("Sending a payload to OpenAI... (debug by #uncommenting openai_utils.py...)")  
+        #print(message_text)  
           
         completion = client.chat.completions.create(  
             model=OPENAI_MODEL,  

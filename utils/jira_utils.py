@@ -33,6 +33,7 @@ async def fetch_issue_details(issue_key):
   
         # DEBUG: KEEP FOR LATER IF NEEDED Pretty-print the raw JIRA issue data  
         # logging.debug("Raw JIRA issue data:")  
+        logging.debug("Raw JIRA issue data received... (debug by #uncommenting in jira_utils.py)")  
         # pprint.pprint(issue.raw)  
   
         # Fetch comments  
