@@ -1,7 +1,7 @@
 # footer_utils.py  
 import logging  
   
-APP_VERSION = "1.624.1149"  
+APP_VERSION = "1.624.1225"  
 OPENAI_MODEL = "gpt4o"  
   
 def generate_footer(platform: str, response_time: float) -> str:  
