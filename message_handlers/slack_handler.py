@@ -16,10 +16,10 @@ from utils.slack_utils import (
 )  
 from utils.footer_utils import generate_footer  
 from utils.datetime_utils import get_current_time, calculate_elapsed_time  
+from utils.special_commands_utils import handle_special_commands  # Import the special commands handler  
 import json  
   
 import os  
-
 SLACK_TOKEN = os.getenv("SLACK_TOKEN")  
   
 def extract_channel_id(conversation_id):  
@@ -34,7 +34,6 @@ def get_parent_thread_ts(activity):
     """Extracts and returns the parent thread timestamp (thread_ts) from the activity."""  
     event_data = activity.channel_data.get("SlackMessage", {}).get("event", {})  
     thread_ts = event_data.get("thread_ts")  
-    
     if thread_ts:  
         print(f"*****THE PARENT THREAD TS (thread_ts) FOR THIS CONVERSATION IS {thread_ts}*******")  
         return thread_ts  
@@ -100,6 +99,10 @@ async def handle_slack_message(turn_context: TurnContext):
         user_message = activity.text  
         logging.debug(f"Received message: {user_message}")  
   
+        # Check for special commands  
+        if await handle_special_commands(turn_context):  
+            return  
+  
         # Extract channel_id  
         channel_id = extract_channel_id(activity.conversation.id)  
         if not channel_id:  
@@ -127,41 +130,34 @@ async def handle_slack_message(turn_context: TurnContext):
         # Fetch and log the conversation history  
         chat_history = fetch_conversation_history(SLACK_TOKEN, channel_id, thread_ts, activity.recipient.id)  
   
-
-
-          
         # Handle attachments if any  
         if activity.attachments:  
             await handle_attachments(turn_context, activity.attachments, thread_ts)  
         else:  
             # Start timing before the call to OpenAI  
             start_time = get_current_time()  
-              
+  
             # Get response from OpenAI and post it to Slack  
             openai_response_data = get_openai_response(user_message, chat_history=chat_history, source="from_slack_handler")  
             bot_response = openai_response_data['choices'][0]['message']['content']  
             logging.debug(f"OpenAI response: {bot_response}")  
-              
+  
             # Convert OpenAI response to Slack markdown  
             formatted_bot_response = convert_to_slack_mrkdwn(bot_response)  
-              
+  
             # Calculate the response time  
             response_time = calculate_elapsed_time(start_time)  
-              
+  
             # Generate the footer with the response time  
             footer = generate_footer("slack", response_time)  
-              
+  
             # Create Slack message with the response and footer  
             logging.debug(f"Bot response: {formatted_bot_response}")  
             logging.debug(f"Footer: {footer}")  
             slack_message = create_slack_message(formatted_bot_response, footer)  
             logging.debug(f"Slack message: {slack_message}")  
-
-
-
             print(f"*****PRINTING constants.py message {formatted_bot_response} on thread_ts {thread_ts}*****")  
-
-              
+  
             response_data_list = post_message_to_slack(  
                 token=SLACK_TOKEN,  
                 channel=channel_id,  
@@ -169,13 +165,11 @@ async def handle_slack_message(turn_context: TurnContext):
                 blocks=slack_message['blocks'],  
                 thread_ts=thread_ts  # Ensure thread_ts is passed here  
             )  
-
             print(f"*****POSTING MESSAGE TO SLACK WITH THREAD_TS: {thread_ts}*****")  
             for response_data in response_data_list:  
                 if not response_data.get("ok"):  
                     await turn_context.send_activity(response_data.get("error", "An error occurred while posting the message to Slack."))  
                     break  
-          
   
         # Remove hourglass reaction from the original message  
         remove_reaction(SLACK_TOKEN, channel_id, event_ts, "hourglass")  

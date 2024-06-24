@@ -13,3 +13,4 @@ python-docx
 gunicorn
 botbuilder-integration-aiohttp>=4.15.0
 pytz
+jira
