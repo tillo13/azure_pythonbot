@@ -11,6 +11,15 @@ load_dotenv()
   
 # Set the JIRA credentials and server  
 jira_server = os.getenv('2023sept8_JIRA_SERVER')  
+
+print("printing out the jira server proving we have value...  ")
+print(jira_server)
+
+
+jira_server_env = os.environ.get("2023sept8_JIRA_SERVER", "cannot find the jira server")
+print("printing out the jira server from env variable proving we have value...  ")
+print(jira_server_env)
+
 username = os.getenv('2023sept8_JIRA_USERNAME')  
 api_token = os.getenv('2023sept8_JIRA_TOKEN')  
 parent_key = os.getenv('2023sept8_JIRA_PARENT_KEY')  
