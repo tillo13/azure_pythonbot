@@ -58,51 +58,7 @@ azure_pythonbot/
 │   ├── slack_utils.py  
 │   └── special_commands_utils.py  
 └── temp.pdf  
- 
-## Setup  
-  
-### Prerequisites  
-  
-- Python 3.8+  
-- `pip` (Python package installer)  
-  
-### Installation  
-  
-1. **Clone the repository**:  
-    ```bash  
-    git clone https://github.com/yourusername/azure_pythonbot.git  
-    cd azure_pythonbot  
-    ```  
-  
-2. **Create a virtual environment**:  
-    ```bash  
-    python -m venv .venv  
-    source .venv/bin/activate  # On Windows use `.venv\Scripts\activate`  
-    ```  
-  
-3. **Install dependencies**:  
-    ```bash  
-    pip install -r requirements.txt  
-    ```  
-  
-4. **Set up environment variables**:  
-    Create a `.env` file in the project root and add the necessary environment variables:  
-    ```plaintext  
-    APPSETTING_MICROSOFT_APP_ID=your_app_id  
-    APPSETTING_MICROSOFT_APP_PASSWORD=your_app_password  
-    APPSETTING_SLACK_TOKEN=your_slack_token  
-    APPSETTING_2023sept8_JIRA_SERVER=your_jira_server  
-    APPSETTING_2023sept8_JIRA_USERNAME=your_jira_username  
-    APPSETTING_2023sept8_JIRA_TOKEN=your_jira_token  
-    APPSETTING_2023sept8_JIRA_PARENT_KEY=your_jira_parent_key  
-    APPSETTING_2023sept8_JIRA_PROJECT_NAME=your_jira_project_name  
-    APPSETTING_2023oct6_JIRA_DEFAULT_USER_ACCOUNT_ID=your_jira_default_user_account_id  
-    APPSETTING_2023oct6_JIRA_DEFAULT_LABEL_TITLE=your_jira_default_label_title  
-    APPSETTING_2024may22_GPT4o_API_KEY=your_openai_api_key  
-    APPSETTING_AZURE_OPENAI_ENDPOINT=your_azure_openai_endpoint  
-    APPSETTING_AZURE_OPENAI_API_VERSION=your_azure_openai_api_version  
-    APPSETTING_CHAT_COMPLETIONS_DEPLOYMENT_NAME=your_openai_model_deployment_name  
-    ```  
+```
   
 ## Usage  
   
