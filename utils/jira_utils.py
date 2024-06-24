@@ -20,6 +20,10 @@ jira_server_env = os.environ.get("2023sept8_JIRA_SERVER", "cannot find the jira 
 print("printing out the jira server from env variable proving we have value...  ")
 print(jira_server_env)
 
+print(os.environ)
+
+
+
 username = os.getenv('2023sept8_JIRA_USERNAME')  
 api_token = os.getenv('2023sept8_JIRA_TOKEN')  
 parent_key = os.getenv('2023sept8_JIRA_PARENT_KEY')  
