@@ -1,6 +1,6 @@
 # Ignore the virtual environment directory  
 venv_azure/  
-venv/
+venv/  
   
 # Ignore the .env file  
 .env  
@@ -104,4 +104,3 @@ dmypy.json
 # Custom ignores  
 temp.pdf  
 .DS_Store  
-__pycache__/  
