@@ -95,11 +95,13 @@ async def handle_slack_message(turn_context: TurnContext):
     activity = turn_context.activity  
     try:  
         # Log the entire activity payload  
-        logging.debug(f"Payload passed from app.py via slack_handler.py: {json.dumps(activity.as_dict(), indent=2)}")  
+        #logging.debug(f"Payload passed from app.py via slack_handler.py: {json.dumps(activity.as_dict(), indent=2)}")  
+        logging.debug(f"Payload passed from app.py via slack_handler.py (#uncomment slack_handler.py to show full payload)")  
   
         # Extract user message  
         user_message = activity.text  
-        logging.debug(f"Received message: {user_message}")  
+        #logging.debug(f"Received message: {user_message}")  
+        logging.debug(f"Received message (#uncomment slack_handler.py to show full payload)")  
   
         # Check for special commands  
         if await handle_special_commands(turn_context):  
