@@ -26,8 +26,8 @@ logging.basicConfig(level=logging.DEBUG)
   
  
 # Configuration  
-APP_ID = os.getenv("MICROSOFT_APP_ID")  
-APP_PASSWORD = os.getenv("MICROSOFT_APP_PASSWORD")  
+APP_ID = os.environ.get("APPSETTING_MICROSOFT_APP_ID")  
+APP_PASSWORD = os.environ.get("APPSETTING_MICROSOFT_APP_PASSWORD")  
 PORT = 3978  
 
 

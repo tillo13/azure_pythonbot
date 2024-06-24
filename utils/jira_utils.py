@@ -9,13 +9,6 @@ import pprint
 # Load environment variables from .env file  
 load_dotenv()  
   
-# Set the JIRA credentials and server  
-jira_server = os.getenv('2023sept8_JIRA_SERVER')  
-
-print("printing out the jira server proving we have value...  ")
-print(jira_server)
-
-
 jira_server_env = os.environ.get("APPSETTING_2023sept8_JIRA_SERVER", "cannot find the jira server")
 print("printing out the jira server from env variable proving we have value...  ")
 print(jira_server_env)
@@ -23,13 +16,12 @@ print(jira_server_env)
 print(os.environ)
 
 
-
-username = os.getenv('APPSETTING_2023sept8_JIRA_USERNAME')  
-api_token = os.getenv('APPSETTING_2023sept8_JIRA_TOKEN')  
-parent_key = os.getenv('APPSETTING_2023sept8_JIRA_PARENT_KEY')  
-project_name = os.getenv('APPSETTING_2023sept8_JIRA_PROJECT_NAME')  
-default_account_id = os.getenv('APPSETTING_2023oct6_JIRA_DEFAULT_USER_ACCOUNT_ID')  
-default_label_title = os.getenv('APPSETTING_2023oct6_JIRA_DEFAULT_LABEL_TITLE')  
+username = os.environ.get('APPSETTING_2023sept8_JIRA_USERNAME')  
+api_token = os.environ.get('APPSETTING_2023sept8_JIRA_TOKEN')  
+parent_key = os.environ.get('APPSETTING_2023sept8_JIRA_PARENT_KEY')  
+project_name = os.environ.get('APPSETTING_2023sept8_JIRA_PROJECT_NAME')  
+default_account_id = os.environ.get('APPSETTING_2023oct6_JIRA_DEFAULT_USER_ACCOUNT_ID')  
+default_label_title = os.environ.get('APPSETTING_2023oct6_JIRA_DEFAULT_LABEL_TITLE')  
   
 # Connect to JIRA Server  
 jira = JIRA(server=jira_server, basic_auth=(username, api_token))  
