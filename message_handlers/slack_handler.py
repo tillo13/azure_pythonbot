@@ -18,9 +18,11 @@ from utils.footer_utils import generate_footer
 from utils.datetime_utils import get_current_time, calculate_elapsed_time  
 from utils.special_commands_utils import handle_special_commands  # Import the special commands handler  
 import json  
-  
+
+
+
 import os  
-SLACK_TOKEN = os.getenv("SLACK_TOKEN")  
+SLACK_TOKEN = os.getenv("APPSETTING_SLACK_TOKEN")  
   
 def extract_channel_id(conversation_id):  
     conversation_id_parts = conversation_id.split(":")  
