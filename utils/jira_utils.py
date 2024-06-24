@@ -9,9 +9,9 @@ import pprint
 # Load environment variables from .env file  
 load_dotenv()  
   
-jira_server_env = os.environ.get("APPSETTING_2023sept8_JIRA_SERVER", "cannot find the jira server")
+jira_server = os.environ.get("APPSETTING_2023sept8_JIRA_SERVER", "cannot find the jira server")
 print("printing out the jira server from env variable proving we have value...  ")
-print(jira_server_env)
+print(jira_server)
 
 print(os.environ)
 
