@@ -2,7 +2,7 @@ import requests
 import logging  
 import re  
 from utils.footer_utils import generate_footer  
-import json
+import json  
   
 SLACK_CHAT_URL = "https://slack.com/api/chat.postMessage"  
 SLACK_CONVERSATIONS_REPLIES_URL = "https://slack.com/api/conversations.replies"  
@@ -18,32 +18,32 @@ def convert_to_slack_mrkdwn(text):
     for i, block in enumerate(code_blocks):  
         placeholder = f"{{{{code_block_{i}}}}}"  
         text = text.replace(f"```{block}```", placeholder)  
-      
+  
     # Convert headers  
     text = re.sub(r'### (.*?)\n', r'```\1```\n', text)  
     logging.debug(f"After converting headers: {text}")  
-      
+  
     # Convert bold text  
     text = re.sub(r'\*\*(.*?)\*\*', r'*\1*', text)  
     logging.debug(f"After converting bold text: {text}")  
-      
+  
     # Convert italic text  
     text = re.sub(r'_(.*?)_', r'_\1_', text)  
     logging.debug(f"After converting italic text: {text}")  
-      
+  
     # Convert strikethrough text  
     text = re.sub(r'~(.*?)~', r'~\1~', text)  
     logging.debug(f"After converting strikethrough text: {text}")  
-      
+  
     # Convert inline code  
     text = re.sub(r'`(.*?)`', r'`\1`', text)  
     logging.debug(f"After converting inline code: {text}")  
-      
+  
     # Restore code blocks  
     for i, block in enumerate(code_blocks):  
         placeholder = f"{{{{code_block_{i}}}}}"  
         text = text.replace(placeholder, f"```{block}```")  
-      
+  
     # Convert lists  
     text = re.sub(r'^\* (.*?)$', r'• \1', text, flags=re.MULTILINE)  
     text = re.sub(r'^1\. (.*?)$', r'1. \1', text, flags=re.MULTILINE)  
@@ -52,7 +52,7 @@ def convert_to_slack_mrkdwn(text):
     # Convert blockquotes  
     text = re.sub(r'^> (.*?)$', r'> \1', text, flags=re.MULTILINE)  
     logging.debug(f"After converting blockquotes: {text}")  
-      
+  
     # Convert links  
     text = re.sub(r'\[(.*?)\]\((.*?)\)', r'<\2|\1>', text)  
     logging.debug(f"After converting links: {text}")  
@@ -64,6 +64,90 @@ def convert_to_slack_mrkdwn(text):
   
     logging.debug(f"Converted text: {text}")  
     return text  
+  
+  
+def convert_jira_response_to_slack_mrkdwn(issue_details):  
+    """  
+    Convert JIRA issue details to Slack Markdown format.  
+    """  
+    # Format child issues  
+    child_issues_list = "\n".join([f"* \\`{child['key']}`: {child['summary']}" for child in issue_details['child_issues']])  
+  
+    # Format the response message  
+      
+    # Format the response message  
+    response_message = (  
+        f"**Issue Key**: \\`{issue_details['key']}\\`\n\n"  
+        f"**Issue Summary**: \\`{issue_details['summary']}\\`\n\n"  
+        f"**Status**: \\`{issue_details['status']}\\`\n\n"  
+        f"**Assignee**: \\`{issue_details['assignee']}\\`\n\n"  
+        f"**Reporter**: \\`{issue_details['reporter']}\\`\n\n"  
+        f"**Priority**: \\`{issue_details['priority']}\\`\n\n"  
+        f"**Created**: \\`{issue_details['created']}\\`\n\n"  
+        f"**Updated**: \\`{issue_details['updated']}\\`\n\n"  
+        f"**Resolution Date**: \\`{issue_details['resolutiondate']}\\`\n\n"  
+        f"**Labels**: \\`{', '.join(issue_details['labels'])}\\`\n\n"  
+        f"**Components**: \\`{', '.join(issue_details['components'])}\\`\n\n"  
+        f"**Issue Type**: \\`{issue_details['issuetype']}\\`\n\n"  
+        f"**Project**: \\`{issue_details['project']}\\`\n\n"  
+        f"**Votes**: \\`{issue_details['votes']}\\`\n\n"  
+        f"**Comments**:\n" + "\n".join([f"* **{comment['author']}** _({comment['created']})_: \n```\n{comment['body']}\n```\n\n" for comment in issue_details['comments']]) + "\n"  
+        f"**Child Issues**:\n{child_issues_list} \n\n"  
+        f"**Issue Description**:\n```{issue_details['description']}```\n\n"  
+
+
+        # Formatting values that work for slack via azure bot framework 
+        "*Formatting Values*:\n"  
+          
+        # Bold text  
+        "* Bold text: **this is bold with 2 slash n and 2 stars** \n\n"  
+
+        #Strikethrough: 
+        "* Strikethrough text: ~this is strikethrough~ \n\n"
+
+        # Italic text  
+        "* Italic text: _this is italic with 2 slash n_ \n\n"  
+          
+        # Inline code  
+        "* Inline code: \\`backslash before backtick`\n"  
+          
+        # Code block  
+        "* Code block:\n```\nthis is a code block with newline inside\n```\n\n"  
+
+    )  
+  
+    return response_message  
+
+  
+def create_slack_message(main_message: str, footer: str, is_jira_response: bool = False) -> dict:  
+    if is_jira_response:  
+        formatted_message = convert_jira_response_to_slack_mrkdwn(main_message) + f"\n\n{footer}"  
+    else:  
+        formatted_message = convert_to_slack_mrkdwn(main_message) + f"\n\n{footer}"  
+  
+    return {  
+        "blocks": [  
+            {  
+                "type": "section",  
+                "text": {  
+                    "type": "mrkdwn",  
+                    "text": formatted_message  
+                }  
+            },  
+            {  
+                "type": "divider"  
+            },  
+            {  
+                "type": "context",  
+                "elements": [  
+                    {  
+                        "type": "mrkdwn",  
+                        "text": f"\n{footer}\n" 
+                    }  
+                ]  
+            }  
+        ]  
+    }  
   
 def add_reaction_to_message(token, channel, timestamp, name):  
     headers = {  
@@ -118,9 +202,7 @@ def remove_reaction_from_message(token, channel, timestamp, name):
 def split_message_into_chunks(message: str, max_length: int) -> list:  
     """Split a message into chunks that are within the specified max length."""  
     return [message[i:i + max_length] for i in range(0, len(message), max_length)]  
-
-
-
+  
 def post_message_to_slack(token, channel, text, blocks=None, thread_ts=None):  
     headers = {  
         "Content-Type": "application/json",  
@@ -188,7 +270,6 @@ def post_message_to_slack(token, channel, text, blocks=None, thread_ts=None):
             break  # Stop sending further chunks if there's an error  
   
     return responses  
-
   
 def get_conversation_replies(token, channel, thread_ts):  
     headers = {  
@@ -217,8 +298,12 @@ def get_conversation_replies(token, channel, thread_ts):
         logging.error(f"Exception occurred while fetching conversation replies from Slack: {e}")  
         return {"ok": False, "error": "An error occurred while trying to fetch conversation replies from Slack. Please try again later."}  
   
-def create_slack_message(main_message: str, footer: str) -> dict:  
-    formatted_message = convert_to_slack_mrkdwn(main_message) + f"\n\n{footer}"  
+def create_slack_message(main_message: str, footer: str, is_jira_response: bool = False) -> dict:  
+    if is_jira_response:  
+        formatted_message = convert_jira_response_to_slack_mrkdwn(main_message) + f"\n\n{footer}"  
+    else:  
+        formatted_message = convert_to_slack_mrkdwn(main_message) + f"\n\n{footer}"  
+  
     return {  
         "blocks": [  
             {  

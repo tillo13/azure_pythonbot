@@ -1,5 +1,6 @@
 # Ignore the virtual environment directory  
 venv_azure/  
+venv/
   
 # Ignore the .env file  
 .env  
@@ -99,3 +100,8 @@ dmypy.json
   
 # Pyre type checker  
 .pyre/  
+  
+# Custom ignores  
+temp.pdf  
+.DS_Store  
+__pycache__/  

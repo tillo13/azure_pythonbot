@@ -7,6 +7,7 @@ from utils.openai_utils import get_openai_response
 from utils.footer_utils import generate_footer  
 from utils.datetime_utils import get_current_time, calculate_elapsed_time  
 from utils.uploaded_file_utils import handle_image_attachment, handle_text_attachment, handle_pdf_attachment  
+from utils.special_commands_utils import handle_special_commands  # Import the special commands handler  
 from constants import *  
 import json  
   
@@ -55,6 +56,10 @@ async def handle_default_message(turn_context: TurnContext):
         logging.debug("Handling default message")  
         user_message = turn_context.activity.text  
         logging.debug(f"User message: {user_message}")  
+  
+        # Check for special commands  
+        if await handle_special_commands(turn_context):  
+            return  
   
         # Check for attachments  
         if turn_context.activity.attachments:  
