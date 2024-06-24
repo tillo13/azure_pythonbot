@@ -22,7 +22,7 @@ import json
 
 
 import os  
-SLACK_TOKEN = os.getenv("APPSETTING_SLACK_TOKEN")  
+SLACK_TOKEN = os.environ.get("APPSETTING_SLACK_TOKEN")  
   
 def extract_channel_id(conversation_id):  
     conversation_id_parts = conversation_id.split(":")  

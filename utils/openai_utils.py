@@ -17,15 +17,15 @@ load_dotenv()
   
 ### GLOBAL VARIABLES ###  
 # API and Model Configuration  
-OPENAI_API_KEY = os.getenv("APPSETTING_2024may22_GPT4o_API_KEY")  
+OPENAI_API_KEY = os.environ.get("APPSETTING_2024may22_GPT4o_API_KEY")  
 #previous version AZURE_OPENAI_ENDPOINT = "https://tillo-openai.openai.azure.com/"  
-AZURE_OPENAI_ENDPOINT = os.getenv("APPSETTING_AZURE_OPENAI_ENDPOINT")  
+AZURE_OPENAI_ENDPOINT = os.environ.get("APPSETTING_AZURE_OPENAI_ENDPOINT")  
 
 #previous version AZURE_OPENAI_API_VERSION = "2024-02-01"  
-AZURE_OPENAI_API_VERSION = os.getenv("APPSETTING_AZURE_OPENAI_API_VERSION")  
+AZURE_OPENAI_API_VERSION = os.environ.get("APPSETTING_AZURE_OPENAI_API_VERSION")  
 
 # previous version OPENAI_MODEL = "2024may22_gpt4o_tillo"  
-OPENAI_MODEL = os.getenv("APPSETTING_CHAT_COMPLETIONS_DEPLOYMENT_NAME")
+OPENAI_MODEL = os.environ.get("APPSETTING_CHAT_COMPLETIONS_DEPLOYMENT_NAME")
 
   
 # Messages and Prompts  
