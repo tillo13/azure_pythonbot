@@ -10,7 +10,8 @@ SLACK_ADD_REACTION_URL = "https://slack.com/api/reactions.add"
 SLACK_REMOVE_REACTION_URL = "https://slack.com/api/reactions.remove"  
   
 def convert_to_slack_mrkdwn(text):  
-    logging.debug(f"Original text: {text}")  
+    #logging.debug(f"Original text: {text}")  
+    logging.debug(f"passing through convert_to_slack_mrkdwn def function... (debug by #uncommenting in slack_utils.py)")  
   
     # Handle code blocks first to avoid interfering with inline code  
     code_block_pattern = re.compile(r'```(.*?)```', re.DOTALL)  
@@ -288,7 +289,8 @@ def get_conversation_replies(token, channel, thread_ts):
         response = requests.get(SLACK_CONVERSATIONS_REPLIES_URL, headers=headers, params=params)  
         response_data = response.json()  
   
-        logging.debug(f"Response from Slack (conversations.replies): {response_data}")  
+        #logging.debug(f"Response from Slack (conversations.replies): {response_data}")  
+        logging.debug(f"Response from Slack (conversations.replies) showing threading happening (debug by #uncommenting in slack_utils.py)")  
   
         if not response_data.get("ok"):  
             error_message = response_data.get("error", "Unknown error")  
