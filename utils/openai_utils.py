@@ -80,17 +80,17 @@ def get_openai_response(user_message, chat_history=None, source=None):
         max_response_tokens = min(128000 - input_token_count, 4000)  # Default to 4000 if under the limit  
   
         # Log the full JSON request  
-        print("Full JSON request to OpenAI:")  
-        print(json.dumps({  
-            "model": OPENAI_MODEL,  
-            "messages": messages,  
-            "temperature": 0.5,  
-            "max_tokens": max_response_tokens,  
-            "top_p": 0.95,  
-            "frequency_penalty": 0,  
-            "presence_penalty": 0,  
-            "stop": None  
-        }, indent=2))  
+        # print("Full JSON request to OpenAI:")  
+        # print(json.dumps({  
+        #     "model": OPENAI_MODEL,  
+        #     "messages": messages,  
+        #     "temperature": 0.5,  
+        #     "max_tokens": max_response_tokens,  
+        #     "top_p": 0.95,  
+        #     "frequency_penalty": 0,  
+        #     "presence_penalty": 0,  
+        #     "stop": None  
+        # }, indent=2))  
   
         completion = client.chat.completions.create(  
             model=OPENAI_MODEL,  
@@ -105,8 +105,8 @@ def get_openai_response(user_message, chat_history=None, source=None):
         completion_response = completion.dict()  
   
         # Log the full JSON response  
-        print("Full JSON response from OpenAI:")  
-        print(json.dumps(completion_response, indent=2))  
+        # print("Full JSON response from OpenAI:")  
+        # print(json.dumps(completion_response, indent=2))  
   
         # Add anything here needed to the response content  
         if 'choices' in completion_response and len(completion_response['choices']) > 0:  

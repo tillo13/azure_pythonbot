@@ -239,15 +239,15 @@ def post_message_to_slack(token, channel, text, blocks=None, thread_ts=None):
         # Print the URL and JSON payload  
         print("******HERE IS THE URL AND JSON WE ARE ABOUT TO SEND INTO SLACK*****")  
         print(f"URL: {SLACK_CHAT_URL}")  
-        print(f"Request JSON: {json.dumps(payload, indent=2)}")  
+        #print(f"Request JSON: {json.dumps(payload, indent=2)}")  
   
-        logging.debug(f"Payload to Slack: {payload}")  
+        #logging.debug(f"Payload to Slack: {payload}")  
   
         try:  
             response = requests.post(SLACK_CHAT_URL, headers=headers, json=payload)  
             response_data = response.json()  
   
-            logging.debug(f"Response from Slack: {response_data}")  
+            #logging.debug(f"Response from Slack: {response_data}")  
   
             if not response_data.get("ok"):  
                 error_message = response_data.get("error", "Unknown error")  

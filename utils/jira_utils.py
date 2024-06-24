@@ -15,6 +15,7 @@ print(jira_server)
 
 print(os.environ)
 
+# Set JIRA credentials and other configuration
 
 username = os.environ.get('APPSETTING_2023sept8_JIRA_USERNAME')  
 api_token = os.environ.get('APPSETTING_2023sept8_JIRA_TOKEN')  
@@ -30,9 +31,9 @@ async def fetch_issue_details(issue_key):
     try:  
         issue = jira.issue(issue_key)  
   
-        # Pretty-print the raw JIRA issue data  
-        logging.debug("Raw JIRA issue data:")  
-        pprint.pprint(issue.raw)  
+        # DEBUG: KEEP FOR LATER IF NEEDED Pretty-print the raw JIRA issue data  
+        # logging.debug("Raw JIRA issue data:")  
+        # pprint.pprint(issue.raw)  
   
         # Fetch comments  
         comments = [  
