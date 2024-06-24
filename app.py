@@ -24,6 +24,11 @@ load_dotenv()
 APP_ID = os.getenv("MICROSOFT_APP_ID")  
 APP_PASSWORD = os.getenv("MICROSOFT_APP_PASSWORD")  
 PORT = 3978  
+
+
+print("printing out from the github_tillo13 directory the app id proving we have value...")
+print(APP_ID)
+
   
 # Create adapter settings and adapter  
 settings = BotFrameworkAdapterSettings(APP_ID, APP_PASSWORD)  
