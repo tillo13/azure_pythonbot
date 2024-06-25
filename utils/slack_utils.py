@@ -78,7 +78,7 @@ def convert_openai_response_to_slack_mrkdwn(text):
     # Convert lists  
     text = re.sub(r'^\* (.*?)$', r'• \1', text, flags=re.MULTILINE)  
     text = re.sub(r'^1\. (.*?)$', r'1. \1', text, flags=re.MULTILINE)  
-    #logging.debug(f"After converting lists: {text}")  
+    ##logging.debug(f"After converting lists: {text}")  
   
     # Convert blockquotes  
     text = re.sub(r'^> (.*?)$', r'> \1', text, flags=re.MULTILINE)  
