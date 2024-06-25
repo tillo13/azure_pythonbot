@@ -1,7 +1,7 @@
 # footer_utils.py  
 import logging  
   
-APP_VERSION = "1.625.0756"  
+APP_VERSION = "1.625.0803"  
 OPENAI_MODEL = "gpt4o"  
 
 #   

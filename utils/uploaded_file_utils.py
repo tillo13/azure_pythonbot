@@ -20,7 +20,7 @@ async def send_message(turn_context, message):
         text=message  
     ))  
   
-async def handle_image_attachment(turn_context, attachment):  
+async def handle_image_attachment(turn_context, attachment, thread_ts=None):  
     image_url = attachment.content_url  
     base64_image = download_and_encode_image(image_url)  
     if base64_image:  
@@ -33,7 +33,7 @@ async def handle_image_attachment(turn_context, attachment):
     else:  
         await send_message(turn_context, MSG_IMAGE_ERROR)  
   
-async def handle_text_attachment(turn_context, attachment):  
+async def handle_text_attachment(turn_context, attachment, thread_ts=None):  
     file_url = attachment.content_url  
     file_content = requests.get(file_url).text  
     if file_content:  
@@ -47,7 +47,7 @@ async def handle_text_attachment(turn_context, attachment):
     else:  
         await send_message(turn_context, MSG_TEXT_ERROR)  
   
-async def handle_pdf_attachment(turn_context, attachment):  
+async def handle_pdf_attachment(turn_context, attachment, thread_ts=None):  
     file_url = attachment.content_url  
     response = requests.get(file_url)  
     if response.status_code == 200:  
