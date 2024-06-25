@@ -94,7 +94,7 @@ async def handle_special_commands(turn_context: TurnContext) -> bool:
                 "* Bold text: *this is bold with 2 slash n and 1 star* \n\n"  
                 "* Strikethrough text: ~this is strikethrough~ \n\n"  
                 "* Italic text: _this is italic with 2 slash n_ \n\n"  
-                "* Inline code: \`1 backslash before backtick`\n\n"  
+                "* Inline code: `1 backslash before backtick`\n\n"  
                 "* Code block:\n```\nthis is a code block with newline inside\n```\n\n"  
             )  
             post_message_to_slack(SLACK_TOKEN, channel_id, formatting_message, thread_ts=thread_ts)  
@@ -102,9 +102,9 @@ async def handle_special_commands(turn_context: TurnContext) -> bool:
         elif command == "help":  
             help_message = (  
                 f"*Commands Available*:\n\n"  
-                f"*$test*: \`Invokes a special test path.\`\n\n"  
-                f"*$formats*: \`Displays formatting values that work for Slack.\`\n\n"  
-                f"*$jira <issue_key> or <JIRA URL>**: \`Fetches and displays details of the specified JIRA issue.\`\n\n"  
+                f"*$test*: `Invokes a special test path.`\n\n"  
+                f"*$formats*: `Displays formatting values that work for Slack.`\n\n"  
+                f"*$jira <issue_key> or <JIRA URL>*: `Fetches and displays details of the specified JIRA issue.`\n\n"  
             )  
             post_message_to_slack(SLACK_TOKEN, channel_id, help_message, thread_ts=thread_ts)  
           
