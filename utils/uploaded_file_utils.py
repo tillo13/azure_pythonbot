@@ -5,12 +5,12 @@ import json  # Add this import
 from botbuilder.schema import Activity, ActivityTypes  
 from botbuilder.core import TurnContext  # Add this import  
 from utils.openai_utils import process_and_summarize_text, extract_text_from_pdf, get_openai_image_response  
-from utils.slack_utils import get_last_5_messages, post_message_to_slack, extract_channel_id, find_latest_file_upload_thread_ts  
+from utils.slack_utils import extract_channel_id, get_last_5_messages, post_message_to_slack, find_latest_file_upload_thread_ts  
 from constants import *  
 import os  
   
 SLACK_TOKEN = os.environ.get("APPSETTING_SLACK_TOKEN")  
-  
+   
 def download_and_encode_image(url):  
     try:  
         response = requests.get(url)  
@@ -20,24 +20,19 @@ def download_and_encode_image(url):
         logging.error(f"Error downloading image: {e}")  
         return None  
   
-async def send_message(turn_context, message, thread_ts=None):  
-    activity = Activity(  
-        type=ActivityTypes.message,  
-        text=message  
-    )  
-    if thread_ts:  
-        activity.additional_properties = {"thread_ts": thread_ts}  
-    await turn_context.send_activity(activity)  
+async def send_message_to_slack(channel_id, message, thread_ts=None):  
+    post_message_to_slack(SLACK_TOKEN, channel_id, message, thread_ts=thread_ts)  
   
 async def process_attachment(turn_context, attachment, process_func, success_message, error_message, thread_ts=None):  
     try:  
-        await send_message(turn_context, success_message, thread_ts)  
+        channel_id = extract_channel_id(turn_context.activity.conversation.id)  
+        await send_message_to_slack(channel_id, success_message, thread_ts)  
         await turn_context.send_activity(Activity(type=ActivityTypes.typing))  
         result = process_func(attachment.content_url)  
-        await send_message(turn_context, result, thread_ts)  
+        await send_message_to_slack(channel_id, result, thread_ts)  
     except Exception as e:  
         logging.error(f"Error processing attachment: {e}")  
-        await send_message(turn_context, error_message, thread_ts)  
+        await send_message_to_slack(channel_id, error_message, thread_ts)  
   
 def process_image(url):  
     base64_image = download_and_encode_image(url)  
@@ -124,9 +119,7 @@ async def handle_slack_message(turn_context: TurnContext):
         # Check for file uploads and handle them  
         if activity.attachments:  
             await handle_file_uploads(turn_context)  
-  
-        # Handle other types of messages if needed  
-        # ...  
+
   
     except (KeyError, TypeError) as e:  
         logging.error(f"Error processing file upload: {e}")  
