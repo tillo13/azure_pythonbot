@@ -6,8 +6,34 @@ import logging
 from utils.jira_utils import fetch_issue_details  
 from utils.footer_utils import generate_footer  
 from utils.slack_utils import create_slack_message, get_last_5_messages  
-from message_handlers.slack_handler import extract_channel_id, get_parent_thread_ts, SLACK_TOKEN  
+
+import os  
+SLACK_TOKEN = os.environ.get("APPSETTING_SLACK_TOKEN")  
   
+def extract_channel_id(conversation_id):  
+    conversation_id_parts = conversation_id.split(":")  
+    if len(conversation_id_parts) >= 3:  
+        return conversation_id_parts[2]  
+    else:  
+        logging.error("Unable to extract channel ID from conversation ID")  
+        return None  
+  
+def get_parent_thread_ts(activity):  
+    """Extracts and returns the parent thread timestamp (thread_ts) from the activity."""  
+    event_data = activity.channel_data.get("SlackMessage", {}).get("event", {})  
+    thread_ts = event_data.get("thread_ts")  
+    if thread_ts:  
+        print(f"*****THE PARENT THREAD TS (thread_ts) FOR THIS CONVERSATION IS {thread_ts}*******")  
+        return thread_ts  
+    else:  
+        ts = event_data.get("ts")  
+        if ts:  
+            print(f"*****THE PARENT THREAD TS (just ts) FOR THIS CONVERSATION IS {ts}*******")  
+            return ts  
+        else:  
+            logging.error("Both thread_ts and ts are None, cannot proceed.")  
+            return None  
+
 def extract_jira_issue_key(input_str):  
     """  
     Extracts the JIRA issue key from a given string.  
