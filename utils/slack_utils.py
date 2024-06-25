@@ -11,7 +11,7 @@ SLACK_REMOVE_REACTION_URL = "https://slack.com/api/reactions.remove"
   
 def convert_openai_response_to_slack_mrkdwn(text):  
     #logging.debug(f"Original text: {text}")  
-    logging.debug(f"passing through convert_to_slack_mrkdwn def function... (debug by #uncommenting in slack_utils.py)")  
+    logging.debug(f"passing through convert_openai_response_to_slack_mrkdwn def function... (debug by #uncommenting in slack_utils.py)")  
   
     # Handle code blocks first to avoid interfering with inline code  
     code_block_pattern = re.compile(r'```(.*?)```', re.DOTALL)  

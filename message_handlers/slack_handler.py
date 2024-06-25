@@ -12,7 +12,7 @@ from utils.slack_utils import (
     remove_reaction_from_message,  
     create_slack_message,  
     parse_chat_history,  
-    convert_to_slack_mrkdwn  
+    convert_openai_response_to_slack_mrkdwn  
 )  
 from utils.footer_utils import generate_footer  
 from utils.datetime_utils import get_current_time, calculate_elapsed_time  
@@ -147,7 +147,7 @@ async def handle_slack_message(turn_context: TurnContext):
             logging.debug(f"OpenAI response: {bot_response}")  
   
             # Convert OpenAI response to Slack markdown  
-            formatted_bot_response = convert_to_slack_mrkdwn(bot_response)  
+            formatted_bot_response = convert_openai_response_to_slack_mrkdwn(bot_response)  
   
             # Calculate the response time  
             response_time = calculate_elapsed_time(start_time)  
