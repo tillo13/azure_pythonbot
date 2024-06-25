@@ -1,10 +1,12 @@
 import re  
+import json
 import time  
 from botbuilder.core import TurnContext  
 import logging  
 from utils.jira_utils import fetch_issue_details  
 from utils.footer_utils import generate_footer  
-from utils.slack_utils import create_slack_message  
+from utils.slack_utils import create_slack_message, get_last_5_messages  
+from message_handlers.slack_handler import extract_channel_id, get_parent_thread_ts, SLACK_TOKEN  
   
 def extract_jira_issue_key(input_str):  
     """  
@@ -25,7 +27,7 @@ def extract_jira_issue_key(input_str):
             return match.group(0)  
       
     return None  
-  
+
 async def handle_special_commands(turn_context: TurnContext) -> bool:  
     """  
     Handle special commands starting with '$'.  
@@ -43,6 +45,18 @@ async def handle_special_commands(turn_context: TurnContext) -> bool:
         command_parts = user_message[1:].split(maxsplit=1)  # Split the command into parts  
         command = command_parts[0].lower()  # The main command (e.g., 'jira')  
   
+        # Extract channel_id and thread_ts for logging messages  
+        channel_id = extract_channel_id(turn_context.activity.conversation.id)  
+        thread_ts = get_parent_thread_ts(turn_context.activity)  
+  
+        # Log the special command invocation  
+        logging.debug(f"SPECIAL COMMAND INVOKED: {command} -- Invoking the last 5 slack messages in that thread")  
+  
+        # Fetch and log the last 5 messages in the channel  
+        last_5_messages = get_last_5_messages(SLACK_TOKEN, channel_id)  
+        logging.debug(f"Last 5 messages in channel {channel_id}: {json.dumps(last_5_messages, indent=2)}")  
+  
+        # Handle special commands  
         if command == "test":  
             await turn_context.send_activity("special test path invoked!")  
         elif command == "formats":  
