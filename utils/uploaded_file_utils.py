@@ -5,7 +5,7 @@ import json  # Add this import
 from botbuilder.schema import Activity, ActivityTypes  
 from botbuilder.core import TurnContext  # Add this import  
 from utils.openai_utils import process_and_summarize_text, extract_text_from_pdf, get_openai_image_response  
-from utils.slack_utils import extract_channel_id, get_last_5_messages, post_message_to_slack, find_latest_file_upload_thread_ts  
+from utils.slack_utils import extract_channel_id, get_last_5_messages, post_message_to_slack 
 from constants import *  
 import os  
   
