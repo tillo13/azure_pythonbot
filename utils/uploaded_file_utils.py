@@ -41,11 +41,25 @@ async def handle_image_attachment(turn_context, attachment, thread_ts=None):
         logging.error("No image found in the last 5 messages")  
         return  
   
+    # Notify user that image processing is starting  
+    await turn_context.send_activity(Activity(  
+        type=ActivityTypes.message,  
+        text=SLACK_MSG_IMAGE_RECEIVED,  
+        channel_data={"thread_ts": image_message_ts}  
+    ))  
+  
     image_url = attachment.content_url  
     base64_image = download_and_encode_image(image_url)  
     if base64_image:  
         image_data_url = f"data:image/jpeg;base64,{base64_image}"  
         openai_response = get_openai_image_response(image_data_url)  
+  
+        # Notify user that image processing is complete with details  
+        await turn_context.send_activity(Activity(  
+            type=ActivityTypes.message,  
+            text=SLACK_MSG_IMAGE_DETAILS,  
+            channel_data={"thread_ts": image_message_ts}  
+        ))  
   
         await turn_context.send_activity(Activity(  
             type=ActivityTypes.message,  
@@ -55,7 +69,7 @@ async def handle_image_attachment(turn_context, attachment, thread_ts=None):
     else:  
         await turn_context.send_activity(Activity(  
             type=ActivityTypes.message,  
-            text="Error processing the image.",  
+            text=SLACK_MSG_IMAGE_ERROR,  
             channel_data={"thread_ts": image_message_ts}  
         ))  
   
