@@ -72,27 +72,27 @@ def convert_jira_response_to_slack_mrkdwn(issue_details):
     Convert JIRA issue details to Slack Markdown format.  
     """  
     # Format child issues  
-    child_issues_list = "\n".join([f"* \`{child['key']}`: {child['summary']}" for child in issue_details['child_issues']])  
+    child_issues_list = "\n".join([f"* `{child['key']}`: {child['summary']}" for child in issue_details['child_issues']])  
   
     # Format the response message  
     response_message = (  
-        f"*Issue Key**: \`{issue_details['key']}\`\n\n"  
-        f"*Issue Summary**: \`{issue_details['summary']}\`\n\n"  
-        f"*Status**: \`{issue_details['status']}\`\n\n"  
-        f"*Assignee**: \`{issue_details['assignee']}\`\n\n"  
-        f"*Reporter**: \`{issue_details['reporter']}\`\n\n"  
-        f"*Priority**: \`{issue_details['priority']}\`\n\n"  
-        f"*Created**: \`{issue_details['created']}\`\n\n"  
-        f"*Updated**: \`{issue_details['updated']}\`\n\n"  
-        f"*Resolution Date**: \`{issue_details['resolutiondate']}\`\n\n"  
-        f"*Labels**: \`{', '.join(issue_details['labels'])}\`\n\n"  
-        f"*Components**: \`{', '.join(issue_details['components'])}\`\n\n"  
-        f"*Issue Type**: \`{issue_details['issuetype']}\`\n\n"  
-        f"*Project**: \`{issue_details['project']}\`\n\n"  
-        f"*Votes**: \`{issue_details['votes']}\`\n\n"  
-        f"*Comments**:\n" + "\n".join([f"* *{comment['author']}* _({comment['created']})_: \n```\n{comment['body']}\n```\n\n" for comment in issue_details['comments']]) + "\n"  
-        f"*Child Issues**:\n{child_issues_list} \n\n"  
-        f"*Issue Description**:\n```{issue_details['description']}```\n\n"  
+        f"*Issue Key*: \{issue_details['key']}`\n\n"  
+        f"*Issue Summary*: `{issue_details['summary']}`\n\n"  
+        f"*Status*: `{issue_details['status']}`\n\n"  
+        f"*Assignee*: `{issue_details['assignee']}`\n\n"  
+        f"*Reporter*: `{issue_details['reporter']}`\n\n"  
+        f"*Priority*: `{issue_details['priority']}`\n\n"  
+        f"*Created*: `{issue_details['created']}`\n\n"  
+        f"*Updated*: `{issue_details['updated']}`\n\n"  
+        f"*Resolution Date*: `{issue_details['resolutiondate']}`\n\n"  
+        f"*Labels*: `{', '.join(issue_details['labels'])}`\n\n"  
+        f"*Components*: `{', '.join(issue_details['components'])}`\n\n"  
+        f"*Issue Type*: `{issue_details['issuetype']}`\n\n"  
+        f"*Project*: `{issue_details['project']}`\n\n"  
+        f"*Votes*: `{issue_details['votes']}`\n\n"  
+        f"*Comments*:\n" + "\n".join([f"* *{comment['author']}* _({comment['created']})_: \n```\n{comment['body']}\n```\n\n" for comment in issue_details['comments']]) + "\n"  
+        f"*Child Issues*:\n{child_issues_list} \n\n"  
+        f"*Issue Description*:\n```{issue_details['description']}```\n\n"  
     )  
   
     return response_message  
