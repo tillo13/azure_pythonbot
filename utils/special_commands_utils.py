@@ -40,10 +40,14 @@ async def handle_special_commands(turn_context: TurnContext) -> bool:
     platform = turn_context.activity.channel_id  
   
     # Extract thread_ts from Slack message  
-    thread_ts = turn_context.activity.conversation.id  
+    thread_ts = None  
     if 'channel_data' in turn_context.activity.additional_properties:  
         slack_message = turn_context.activity.additional_properties['channel_data'].get('SlackMessage', {})  
         thread_ts = slack_message.get('thread_ts', slack_message.get('ts'))  
+  
+    # Ensure thread_ts is correctly formatted  
+    if thread_ts and '.' not in thread_ts:  
+        thread_ts = f"{thread_ts[:-6]}.{thread_ts[-6:]}"  
   
     if user_message.startswith('$') or JIRA_BASE_URL in user_message:  
         command_parts = user_message[1:].split(maxsplit=1) if user_message.startswith('$') else [None, user_message]  
