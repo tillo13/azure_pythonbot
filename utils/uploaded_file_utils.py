@@ -4,7 +4,7 @@ import base64
 from botbuilder.schema import Activity, ActivityTypes  
 from utils.openai_utils import process_and_summarize_text, extract_text_from_pdf, get_openai_image_response  
 from constants import *  
-from utils.slack_utils import get_last_5_messages  # Add this import statement at the top  
+from utils.slack_utils import get_last_5_messages  
 import os  
   
 SLACK_TOKEN = os.environ.get("APPSETTING_SLACK_TOKEN")  
@@ -26,7 +26,6 @@ def extract_channel_id(conversation_id):
         logging.error("Unable to extract channel ID from conversation ID")  
         return None  
   
-
 async def handle_image_attachment(turn_context, attachment, thread_ts=None):  
     channel_id = extract_channel_id(turn_context.activity.conversation.id)  
     logging.debug(f"File is being uploaded --invoking the last 5 messages in channel, {channel_id}...")  
@@ -76,6 +75,7 @@ async def handle_image_attachment(turn_context, attachment, thread_ts=None):
             channel_data={"thread_ts": image_message_ts}  
         ))  
   
+# Ensure other attachment handlers follow a similar structure for threading  
 async def handle_text_attachment(turn_context, attachment, thread_ts=None):  
     channel_id = extract_channel_id(turn_context.activity.conversation.id)  
     logging.debug(f"File is being uploaded --invoking the last 5 messages in channel, {channel_id}...")  
