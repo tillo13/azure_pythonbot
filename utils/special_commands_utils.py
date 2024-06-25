@@ -9,8 +9,7 @@ from utils.slack_utils import create_slack_message, get_last_5_messages, post_me
 import os  
 
 
-#print the gpt4o value fr
-
+#print the gpt4o value from the 
 
 SLACK_TOKEN = os.environ.get("APPSETTING_SLACK_TOKEN")  
   
