@@ -1,11 +1,8 @@
 # footer_utils.py  
 import logging  
   
-APP_VERSION = "1.625.1136"  
+APP_VERSION = "1.625.1143"  
 OPENAI_MODEL = "gpt4o"  
-
-#  print the
-
 
 
 #print out the openai_model value below ./
@@ -25,6 +22,6 @@ def generate_footer(platform: str, response_time: float) -> str:
     if platform == "slack":  
         # Slack uses a different markdown syntax  
         #footer = f"`App Version`: _{APP_VERSION}_ | `OpenAI Model`: _{OPENAI_MODEL}_ | `Response Time`: _{response_time:.3f}s_"  
-        footer = f"*App Version*: `{APP_VERSION}` | *OpenAI Model*: `{OPENAI_MODEL}` | *Response Time*: `{response_time:.3f}s`"  
+        footer = f"*TDBot App Version*: `{APP_VERSION}` | *OpenAI Model*: `{OPENAI_MODEL}` | *Response Time*: `{response_time:.3f}s`"  
     logging.debug(f"Generated footer: {footer}")  
     return footer  
