@@ -52,6 +52,13 @@ def find_latest_command_thread_ts(messages, command):
             return message.get('thread_ts') or message.get('ts')  
     return None  
   
+
+def extract_thread_ts(activity):  
+    """  
+    Extract the thread_ts from the activity.  
+    """  
+    return activity.channel_data.get('SlackMessage', {}).get('event', {}).get('thread_ts')  
+  
 async def handle_special_commands(turn_context: TurnContext) -> bool:  
     """  
     Handle special commands starting with '$'.  
@@ -75,17 +82,13 @@ async def handle_special_commands(turn_context: TurnContext) -> bool:
         # Log the special command invocation  
         logging.debug(f"SPECIAL COMMAND INVOKED: {command} -- Invoking the last 5 slack messages in that thread")  
   
-        # Fetch the last 5 messages in the channel to get the thread_ts  
-        last_5_messages = get_last_5_messages(SLACK_TOKEN, channel_id)  
-        logging.debug(f"Last 5 messages in channel {channel_id}: {json.dumps(last_5_messages, indent=2)}")  
-  
-        # Find the latest thread_ts for the specific command  
-        thread_ts = find_latest_command_thread_ts(last_5_messages, command)  
+        # Extract thread_ts directly from the activity  
+        thread_ts = extract_thread_ts(turn_context.activity) or turn_context.activity.channel_data.get('SlackMessage', {}).get('event', {}).get('ts')  
   
         if thread_ts:  
             logging.debug(f"Using thread_ts for response: {thread_ts}")  
         else:  
-            logging.error("Unable to find thread_ts for the command from the last 5 messages.")  
+            logging.error("Unable to find thread_ts from the activity.")  
             thread_ts = turn_context.activity.timestamp  # Default to current message timestamp  
   
         # Handle special commands  
