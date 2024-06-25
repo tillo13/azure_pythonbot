@@ -22,23 +22,23 @@ def convert_openai_response_to_slack_mrkdwn(text):
   
     # Convert headers  
     text = re.sub(r'### (.*?)\n', r'```\1```\n', text)  
-    logging.debug(f"After converting headers: {text}")  
+    #logging.debug(f"After converting headers: {text}")  
   
     # Convert bold text  
     text = re.sub(r'\*\*(.*?)\*\*', r'*\1*', text)  
-    logging.debug(f"After converting bold text: {text}")  
+    #logging.debug(f"After converting bold text: {text}")  
   
     # Convert italic text  
     text = re.sub(r'_(.*?)_', r'_\1_', text)  
-    logging.debug(f"After converting italic text: {text}")  
+    #logging.debug(f"After converting italic text: {text}")  
   
     # Convert strikethrough text  
     text = re.sub(r'~(.*?)~', r'~\1~', text)  
-    logging.debug(f"After converting strikethrough text: {text}")  
+    #logging.debug(f"After converting strikethrough text: {text}")  
   
     # Convert inline code  
     text = re.sub(r'`(.*?)`', r'`\1`', text)  
-    logging.debug(f"After converting inline code: {text}")  
+    #logging.debug(f"After converting inline code: {text}")  
   
     # Restore code blocks  
     for i, block in enumerate(code_blocks):  
@@ -48,22 +48,22 @@ def convert_openai_response_to_slack_mrkdwn(text):
     # Convert lists  
     text = re.sub(r'^\* (.*?)$', r'• \1', text, flags=re.MULTILINE)  
     text = re.sub(r'^1\. (.*?)$', r'1. \1', text, flags=re.MULTILINE)  
-    logging.debug(f"After converting lists: {text}")  
+    #logging.debug(f"After converting lists: {text}")  
   
     # Convert blockquotes  
     text = re.sub(r'^> (.*?)$', r'> \1', text, flags=re.MULTILINE)  
-    logging.debug(f"After converting blockquotes: {text}")  
+    #logging.debug(f"After converting blockquotes: {text}")  
   
     # Convert links  
     text = re.sub(r'\[(.*?)\]\((.*?)\)', r'<\2|\1>', text)  
-    logging.debug(f"After converting links: {text}")  
+    #logging.debug(f"After converting links: {text}")  
   
     # Convert user mentions and channel links  
     text = re.sub(r'@(\w+)', r'<@\1>', text)  
     text = re.sub(r'#(\w+)', r'<#\1>', text)  
-    logging.debug(f"After converting user mentions and channel links: {text}")  
+    #logging.debug(f"After converting user mentions and channel links: {text}")  
   
-    logging.debug(f"Converted text: {text}")  
+    #logging.debug(f"Converted text: {text}")  
     return text  
   
   
@@ -74,8 +74,6 @@ def convert_jira_response_to_slack_mrkdwn(issue_details):
     # Format child issues  
     child_issues_list = "\n".join([f"* \\`{child['key']}`: {child['summary']}" for child in issue_details['child_issues']])  
   
-    # Format the response message  
-      
     # Format the response message  
     response_message = (  
         f"**Issue Key**: \\`{issue_details['key']}\\`\n\n"  
@@ -95,26 +93,6 @@ def convert_jira_response_to_slack_mrkdwn(issue_details):
         f"**Comments**:\n" + "\n".join([f"* **{comment['author']}** _({comment['created']})_: \n```\n{comment['body']}\n```\n\n" for comment in issue_details['comments']]) + "\n"  
         f"**Child Issues**:\n{child_issues_list} \n\n"  
         f"**Issue Description**:\n```{issue_details['description']}```\n\n"  
-
-
-        # Formatting values that work for slack via azure bot framework 
-        "*Formatting Values*:\n"  
-          
-        # Bold text  
-        "* Bold text: **this is bold with 2 slash n and 2 stars** \n\n"  
-
-        #Strikethrough: 
-        "* Strikethrough text: ~this is strikethrough~ \n\n"
-
-        # Italic text  
-        "* Italic text: _this is italic with 2 slash n_ \n\n"  
-          
-        # Inline code  
-        "* Inline code: \\`backslash before backtick`\n"  
-          
-        # Code block  
-        "* Code block:\n```\nthis is a code block with newline inside\n```\n\n"  
-
     )  
   
     return response_message  

@@ -28,6 +28,16 @@ async def handle_special_commands(turn_context: TurnContext) -> bool:
             await turn_context.send_activity("World command received. What would you like to know about the world?")  
         elif command == "test":  
             await turn_context.send_activity("special test path invoked!")  
+        elif command == "formats":  
+            formatting_message = (  
+                "*Formatting Values*:\n\n"  
+                "* Bold text: **this is bold with 2 slash n and 2 stars** \n\n"  
+                "* Strikethrough text: ~this is strikethrough~ \n\n"  
+                "* Italic text: _this is italic with 2 slash n_ \n\n"  
+                "* Inline code: \\`backslash before backtick`\n\n"  
+                "* Code block:\n```\nthis is a code block with newline inside\n```\n\n"  
+            )  
+            await turn_context.send_activity(formatting_message)  
         elif command == "jira" and len(command_parts) > 1:  
             issue_key = command_parts[1]  
             start_time = time.time()  # Start timing the response  
@@ -48,5 +58,3 @@ async def handle_special_commands(turn_context: TurnContext) -> bool:
         return True  
   
     return False  
-  
-# Other existing functions in the file (if any) should remain unchanged.  
