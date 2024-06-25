@@ -85,7 +85,7 @@ async def handle_special_commands(turn_context: TurnContext) -> bool:
         # Handle special commands  
         if command == "test":  
             response_text = "special test path invoked!"  
-            await post_message_to_slack(SLACK_TOKEN, channel_id, response_text, thread_ts=thread_ts)  
+            post_message_to_slack(SLACK_TOKEN, channel_id, response_text, thread_ts=thread_ts)  
           
         elif command == "formats":  
             formatting_message = (  
@@ -96,7 +96,7 @@ async def handle_special_commands(turn_context: TurnContext) -> bool:
                 "* Inline code: \\`backslash before backtick`\n\n"  
                 "* Code block:\n```\nthis is a code block with newline inside\n```\n\n"  
             )  
-            await post_message_to_slack(SLACK_TOKEN, channel_id, formatting_message, thread_ts=thread_ts)  
+            post_message_to_slack(SLACK_TOKEN, channel_id, formatting_message, thread_ts=thread_ts)  
           
         elif command == "help":  
             help_message = (  
@@ -105,7 +105,8 @@ async def handle_special_commands(turn_context: TurnContext) -> bool:
                 f"**$formats**: \\`Displays formatting values that work for Slack.\\`\n\n"  
                 f"**$jira <issue_key> or <JIRA URL>**: \\`Fetches and displays details of the specified JIRA issue.\\`\n\n"  
             )  
-            await post_message_to_slack(SLACK_TOKEN, channel_id, help_message, thread_ts=thread_ts)  
+
+            post_message_to_slack(SLACK_TOKEN, channel_id, help_message, thread_ts=thread_ts)  
           
         elif command == "jira" and len(command_parts) > 1:  
             input_str = command_parts[1]  
@@ -120,16 +121,16 @@ async def handle_special_commands(turn_context: TurnContext) -> bool:
                     # Create Slack message with the JIRA response  
                     slack_message = create_slack_message(issue_details, footer, is_jira_response=True)  
                       
-                    await post_message_to_slack(SLACK_TOKEN, channel_id, slack_message['blocks'][0]['text']['text'], thread_ts=thread_ts)  
+                    post_message_to_slack(SLACK_TOKEN, channel_id, slack_message['blocks'][0]['text']['text'], thread_ts=thread_ts)  
                 except Exception as err:  
                     error_text = f"Error fetching JIRA issue: {err}"  
-                    await post_message_to_slack(SLACK_TOKEN, channel_id, error_text, thread_ts=thread_ts)  
+                    post_message_to_slack(SLACK_TOKEN, channel_id, error_text, thread_ts=thread_ts)  
             else:  
                 invalid_key_text = "Invalid JIRA issue key or URL."  
-                await post_message_to_slack(SLACK_TOKEN, channel_id, invalid_key_text, thread_ts=thread_ts)  
+                post_message_to_slack(SLACK_TOKEN, channel_id, invalid_key_text, thread_ts=thread_ts)  
         else:  
             unknown_command_text = f"I don't understand that command: {command}"  
-            await post_message_to_slack(SLACK_TOKEN, channel_id, unknown_command_text, thread_ts=thread_ts)  
+            post_message_to_slack(SLACK_TOKEN, channel_id, unknown_command_text, thread_ts=thread_ts)  
           
         return True  
       
