@@ -8,6 +8,39 @@ SLACK_CHAT_URL = "https://slack.com/api/chat.postMessage"
 SLACK_CONVERSATIONS_REPLIES_URL = "https://slack.com/api/conversations.replies"  
 SLACK_ADD_REACTION_URL = "https://slack.com/api/reactions.add"  
 SLACK_REMOVE_REACTION_URL = "https://slack.com/api/reactions.remove"  
+
+
+SLACK_CONVERSATIONS_HISTORY_URL = "https://slack.com/api/conversations.history"  
+  
+def get_latest_help_message_ts(token, channel):  
+    headers = {  
+        "Content-Type": "application/json",  
+        "Authorization": f"Bearer {token}"  
+    }  
+    params = {  
+        "channel": channel,  
+        "limit": 100  # Adjust as needed  
+    }  
+  
+    try:  
+        response = requests.get(SLACK_CONVERSATIONS_HISTORY_URL, headers=headers, params=params)  
+        response_data = response.json()  
+          
+        if not response_data.get("ok"):  
+            error_message = response_data.get("error", "Unknown error")  
+            logging.error(f"Error fetching conversation history: {response_data}")  
+            return None  
+  
+        for message in response_data["messages"]:  
+            if "$help" in message.get("text", ""):  
+                return message.get("ts")  
+          
+        logging.info("No $help message found in the recent history.")  
+        return None  
+  
+    except requests.exceptions.RequestException as e:  
+        logging.error(f"Exception occurred while fetching conversation history: {e}")  
+        return None  
   
 def convert_openai_response_to_slack_mrkdwn(text):  
     #logging.debug(f"Original text: {text}")  

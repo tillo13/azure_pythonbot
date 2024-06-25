@@ -1,10 +1,11 @@
+# special_commands_utils.py  
 import re  
 import time  
 from botbuilder.core import TurnContext  
 import logging  
 from utils.jira_utils import fetch_issue_details  
 from utils.footer_utils import generate_footer  
-from utils.slack_utils import create_slack_message, post_message_to_slack  # Import these functions  
+from utils.slack_utils import create_slack_message, post_message_to_slack, get_latest_help_message_ts  # Import these functions  
 import os  
   
 def extract_jira_issue_key(input_str):  
@@ -29,8 +30,11 @@ async def handle_special_commands(turn_context: TurnContext) -> bool:
         command_parts = user_message[1:].split(maxsplit=1)  # Split the command into parts  
         command = command_parts[0].lower()  # The main command (e.g., 'jira')  
   
-        # Extract thread_ts if available  
+        # Extract thread_ts if available, otherwise fetch the latest $help message ts  
         thread_ts = turn_context.activity.channel_data.get("SlackMessage", {}).get("thread_ts") or turn_context.activity.channel_data.get("SlackMessage", {}).get("ts")  
+        if not thread_ts and command == "help":  
+            channel_id = turn_context.activity.conversation.id.split(":")[2]  # Extract channel_id  
+            thread_ts = get_latest_help_message_ts(os.environ.get("APPSETTING_SLACK_TOKEN"), channel_id)  
   
         if command == "test":  
             await turn_context.send_activity("special test path invoked!")  
