@@ -4,10 +4,6 @@ import base64
 from botbuilder.schema import Activity, ActivityTypes  
 from utils.openai_utils import process_and_summarize_text, extract_text_from_pdf, get_openai_image_response  
 from constants import *  
-from utils.slack_utils import get_last_5_messages  
-import os  
-  
-SLACK_TOKEN = os.environ.get("APPSETTING_SLACK_TOKEN")  
   
 def download_and_encode_image(url):  
     try:  
@@ -18,157 +14,55 @@ def download_and_encode_image(url):
         logging.error(f"Error downloading image: {e}")  
         return None  
   
-def extract_channel_id(conversation_id):  
-    conversation_id_parts = conversation_id.split(":")  
-    if len(conversation_id_parts) >= 3:  
-        return conversation_id_parts[2]  
-    else:  
-        logging.error("Unable to extract channel ID from conversation ID")  
-        return None  
-  
-async def handle_image_attachment(turn_context, attachment, thread_ts=None):  
-    channel_id = extract_channel_id(turn_context.activity.conversation.id)  
-    last_5_messages = get_last_5_messages(SLACK_TOKEN, channel_id)  
-  
-    # Identify the message containing the image  
-    image_message_ts = None  
-    for message in last_5_messages:  
-        if 'files' in message and any(file['mimetype'].startswith('image/') for file in message['files']):  
-            image_message_ts = message['ts']  
-            break  
-  
-    if image_message_ts is None:  
-        logging.error("No image found in the last 5 messages")  
-        return  
-  
-    # Notify user that image processing is starting  
+async def send_message(turn_context, message):  
     await turn_context.send_activity(Activity(  
         type=ActivityTypes.message,  
-        text=SLACK_MSG_IMAGE_RECEIVED,  
-        channel_data={"thread_ts": image_message_ts}  
+        text=message  
     ))  
   
-    image_url = attachment.content_url  
-    base64_image = download_and_encode_image(image_url)  
-    if base64_image:  
-        image_data_url = f"data:image/jpeg;base64,{base64_image}"  
-        openai_response = get_openai_image_response(image_data_url)  
-  
-        # Notify user that image processing is complete with details  
-        await turn_context.send_activity(Activity(  
-            type=ActivityTypes.message,  
-            text=SLACK_MSG_IMAGE_DETAILS,  
-            channel_data={"thread_ts": image_message_ts}  
-        ))  
-  
-        await turn_context.send_activity(Activity(  
-            type=ActivityTypes.message,  
-            text=openai_response,  
-            channel_data={"thread_ts": image_message_ts}  
-        ))  
-    else:  
-        await turn_context.send_activity(Activity(  
-            type=ActivityTypes.message,  
-            text=SLACK_MSG_IMAGE_ERROR,  
-            channel_data={"thread_ts": image_message_ts}  
-        ))  
-  
-# Ensure other attachment handlers follow a similar structure for threading  
-async def handle_text_attachment(turn_context, attachment, thread_ts=None):  
-    channel_id = extract_channel_id(turn_context.activity.conversation.id)  
-    logging.debug(f"File is being uploaded --invoking the last 5 messages in channel, {channel_id}...")  
-    last_5_messages = get_last_5_messages(SLACK_TOKEN, channel_id)  
-    logging.debug(f"Last 5 messages in channel {channel_id}: {last_5_messages}")  
-  
-    print(f"********THE TXT FILE UPLOADED WILL PASTE THE RESPONSE IN THIS SUBTHREAD {thread_ts}******")  
-    file_url = attachment.content_url  
-    file_content = requests.get(file_url).text  
-    if file_content:  
-        print(f"*****PRINTING constants.py message {MSG_TEXT_RECEIVED} on thread_ts {thread_ts}*****")  
-        await turn_context.send_activity(Activity(  
-            type=ActivityTypes.message,  
-            text=MSG_TEXT_RECEIVED,  
-            channel_data={"thread_ts": thread_ts} if thread_ts else None  
-        ))  
-        print(f"*****PRINTING constants.py message {MSG_START_SUMMARIZATION} on thread_ts {thread_ts}*****")  
-        await turn_context.send_activity(Activity(  
-            type=ActivityTypes.message,  
-            text=MSG_START_SUMMARIZATION,  
-            channel_data={"thread_ts": thread_ts} if thread_ts else None  
-        ))  
-        print(f"*****PRINTING constants.py message {MSG_CHUNK_PROCESSING} on thread_ts {thread_ts}*****")  
-        await turn_context.send_activity(Activity(  
-            type=ActivityTypes.message,  
-            text=MSG_CHUNK_PROCESSING,  
-            channel_data={"thread_ts": thread_ts} if thread_ts else None  
-        ))  
-        await turn_context.send_activity(Activity(type=ActivityTypes.typing))  
-        attempt_sizes = [5000, 6000, 7000]  
-        summary_with_processing_summary = process_and_summarize_text(file_content, "Text file", attempt_sizes)  
-        await turn_context.send_activity(Activity(  
-            type=ActivityTypes.message,  
-            text=summary_with_processing_summary,  
-            channel_data={"thread_ts": thread_ts} if thread_ts else None  
-        ))  
-    else:  
-        print(f"*****PRINTING constants.py message {MSG_TEXT_ERROR} on thread_ts {thread_ts}*****")  
-        await turn_context.send_activity(Activity(  
-            type=ActivityTypes.message,  
-            text=MSG_TEXT_ERROR,  
-            channel_data={"thread_ts": thread_ts} if thread_ts else None  
-        ))  
-  
-async def handle_pdf_attachment(turn_context, attachment, thread_ts=None):  
-    channel_id = extract_channel_id(turn_context.activity.conversation.id)  
-    logging.debug(f"File is being uploaded --invoking the last 5 messages in channel, {channel_id}...")  
-    last_5_messages = get_last_5_messages(SLACK_TOKEN, channel_id)  
-    logging.debug(f"Last 5 messages in channel {channel_id}: {last_5_messages}")  
-  
-    print(f"********THE PDF FILE UPLOADED WILL PASTE THE RESPONSE IN THIS SUBTHREAD {thread_ts}******")  
+async def handle_attachment(turn_context, attachment, file_type):  
     file_url = attachment.content_url  
     response = requests.get(file_url)  
-    if response.status_code == 200:  
-        with open("temp.pdf", "wb") as pdf_file:  
-            pdf_file.write(response.content)  
-        pdf_text = extract_text_from_pdf("temp.pdf")  
-        if pdf_text:  
-            print(f"*****PRINTING constants.py message {MSG_PDF_RECEIVED} on thread_ts {thread_ts}*****")  
-            await turn_context.send_activity(Activity(  
-                type=ActivityTypes.message,  
-                text=MSG_PDF_RECEIVED,  
-                channel_data={"thread_ts": thread_ts} if thread_ts else None  
-            ))  
-            print(f"*****PRINTING constants.py message {MSG_START_SUMMARIZATION} on thread_ts {thread_ts}*****")  
-            await turn_context.send_activity(Activity(  
-                type=ActivityTypes.message,  
-                text=MSG_START_SUMMARIZATION,  
-                channel_data={"thread_ts": thread_ts} if thread_ts else None  
-            ))  
-            print(f"*****PRINTING constants.py message {MSG_CHUNK_PROCESSING} on thread_ts {thread_ts}*****")  
-            await turn_context.send_activity(Activity(  
-                type=ActivityTypes.message,  
-                text=MSG_CHUNK_PROCESSING,  
-                channel_data={"thread_ts": thread_ts} if thread_ts else None  
-            ))  
-            await turn_context.send_activity(Activity(type=ActivityTypes.typing))  
-            attempt_sizes = [5000, 6000, 7000]  
-            summary_with_processing_summary = process_and_summarize_text(pdf_text, "PDF file", attempt_sizes)  
-            await turn_context.send_activity(Activity(  
-                type=ActivityTypes.message,  
-                text=summary_with_processing_summary,  
-                channel_data={"thread_ts": thread_ts} if thread_ts else None  
-            ))  
+  
+    if file_type == "image":  
+        base64_image = download_and_encode_image(file_url)  
+        if base64_image:  
+            await send_message(turn_context, MSG_IMAGE_RECEIVED)  
+            logging.debug(f"Base64 Image Length: {len(base64_image)}")  
+            image_data_url = f"data:image/jpeg;base64,{base64_image}"  
+            openai_response = get_openai_image_response(image_data_url)  
+            await send_message(turn_context, MSG_IMAGE_DETAILS)  
+            await send_message(turn_context, openai_response)  
         else:  
-            print(f"*****PRINTING constants.py message {MSG_PDF_ERROR} on thread_ts {thread_ts}*****")  
-            await turn_context.send_activity(Activity(  
-                type=ActivityTypes.message,  
-                text=MSG_PDF_ERROR,  
-                channel_data={"thread_ts": thread_ts} if thread_ts else None  
-            ))  
-    else:  
-        print(f"*****PRINTING constants.py message {MSG_DOWNLOAD_PDF_ERROR} on thread_ts {thread_ts}*****")  
-        await turn_context.send_activity(Activity(  
-            type=ActivityTypes.message,  
-            text=MSG_DOWNLOAD_PDF_ERROR,  
-            channel_data={"thread_ts": thread_ts} if thread_ts else None  
-        ))  
+            await send_message(turn_context, MSG_IMAGE_ERROR)  
+    elif file_type in ["text", "pdf"]:  
+        if response.status_code == 200:  
+            if file_type == "pdf":  
+                with open("temp.pdf", "wb") as pdf_file:  
+                    pdf_file.write(response.content)  
+                file_content = extract_text_from_pdf("temp.pdf")  
+            else:  
+                file_content = response.text  
+  
+            if file_content:  
+                await send_message(turn_context, MSG_TEXT_RECEIVED if file_type == "text" else MSG_PDF_RECEIVED)  
+                await send_message(turn_context, MSG_START_SUMMARIZATION)  
+                await send_message(turn_context, MSG_CHUNK_PROCESSING)  
+                await turn_context.send_activity(Activity(type=ActivityTypes.typing))  
+  
+                attempt_sizes = [5000, 6000, 7000]  
+                summary_with_processing_summary = process_and_summarize_text(file_content, f"{file_type.capitalize()} file", attempt_sizes)  
+                await send_message(turn_context, summary_with_processing_summary)  
+            else:  
+                await send_message(turn_context, MSG_TEXT_ERROR if file_type == "text" else MSG_PDF_ERROR)  
+        else:  
+            await send_message(turn_context, MSG_DOWNLOAD_PDF_ERROR)  
+  
+async def handle_image_attachment(turn_context, attachment):  
+    await handle_attachment(turn_context, attachment, "image")  
+  
+async def handle_text_attachment(turn_context, attachment):  
+    await handle_attachment(turn_context, attachment, "text")  
+  
+async def handle_pdf_attachment(turn_context, attachment):  
+    await handle_attachment(turn_context, attachment, "pdf")  
