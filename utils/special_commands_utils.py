@@ -40,7 +40,12 @@ async def handle_special_commands(turn_context: TurnContext) -> bool:
     """  
     user_message = turn_context.activity.text.strip()  
     platform = turn_context.activity.channel_id  # Get the platform (e.g., "slack", "webchat")  
-    thread_ts = turn_context.activity.conversation.id  # Thread timestamp for Slack threading  
+  
+    # Extract thread_ts from Slack message  
+    thread_ts = turn_context.activity.conversation.id  
+    if 'channel_data' in turn_context.activity.additional_properties:  
+        slack_message = turn_context.activity.additional_properties['channel_data'].get('SlackMessage', {})  
+        thread_ts = slack_message.get('thread_ts', slack_message.get('ts'))  
   
     # Check if the input is a special command or a specific JIRA URL  
     if user_message.startswith('$') or JIRA_BASE_URL in user_message:  
@@ -48,7 +53,7 @@ async def handle_special_commands(turn_context: TurnContext) -> bool:
         command = command_parts[0].lower() if command_parts[0] else "jira"  # The main command (e.g., 'jira')  
   
         if command == "test":  
-            await turn_context.send_activity("special test path invoked!", thread_ts=thread_ts)  
+            await turn_context.send_activity("special test path invoked!", additional_properties={'thread_ts': thread_ts})  
         elif command == "formats":  
             formatting_message = (  
                 "*Formatting Values*:\n\n"  
@@ -58,7 +63,7 @@ async def handle_special_commands(turn_context: TurnContext) -> bool:
                 "* Inline code: \\`backslash before backtick`\n\n"  
                 "* Code block:\n```\nthis is a code block with newline inside\n```\n\n"  
             )  
-            await turn_context.send_activity(formatting_message, thread_ts=thread_ts)  
+            await turn_context.send_activity(formatting_message, additional_properties={'thread_ts': thread_ts})  
         elif command == "help":  
             help_message = (  
                 f"**Commands Available**:\n\n"  
@@ -66,7 +71,7 @@ async def handle_special_commands(turn_context: TurnContext) -> bool:
                 f"**$formats**: \\`Displays formatting values that work for Slack.\\`\n\n"  
                 f"**$jira <issue_key> or <JIRA URL>**: \\`Fetches and displays details of the specified JIRA issue.\\`\n\n"  
             )  
-            await turn_context.send_activity(help_message, thread_ts=thread_ts)  
+            await turn_context.send_activity(help_message, additional_properties={'thread_ts': thread_ts})  
         elif command == "jira" and len(command_parts) > 1 or JIRA_BASE_URL in user_message:  
             input_str = command_parts[1] if len(command_parts) > 1 else user_message  
             issue_key = extract_issue_key(input_str)  
@@ -80,13 +85,13 @@ async def handle_special_commands(turn_context: TurnContext) -> bool:
                     # Create Slack message with the JIRA response  
                     slack_message = create_slack_message(issue_details, footer, is_jira_response=True)  
   
-                    await turn_context.send_activity(slack_message['blocks'][0]['text']['text'], thread_ts=thread_ts)  
+                    await turn_context.send_activity(slack_message['blocks'][0]['text']['text'], additional_properties={'thread_ts': thread_ts})  
                 except Exception as err:  
-                    await turn_context.send_activity(f"Error fetching JIRA issue: {err}", thread_ts=thread_ts)  
+                    await turn_context.send_activity(f"Error fetching JIRA issue: {err}", additional_properties={'thread_ts': thread_ts})  
             else:  
-                await turn_context.send_activity("Invalid JIRA issue key or URL.", thread_ts=thread_ts)  
+                await turn_context.send_activity("Invalid JIRA issue key or URL.", additional_properties={'thread_ts': thread_ts})  
         else:  
-            await turn_context.send_activity(f"I don't understand that command: {command}", thread_ts=thread_ts)  
+            await turn_context.send_activity(f"I don't understand that command: {command}", additional_properties={'thread_ts': thread_ts})  
   
         return True  
   
