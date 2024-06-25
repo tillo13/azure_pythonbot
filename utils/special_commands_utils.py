@@ -22,19 +22,19 @@ def extract_jira_issue_key(input_str):
     """  
     Extracts the JIRA issue key from a given string.  
     """  
-    # Regular expression to match JIRA issue key  
-    issue_key_pattern = re.compile(r'[A-Z]+-\d+')  
+    # Regular expression to match JIRA issue key (case-insensitive)  
+    issue_key_pattern = re.compile(r'[A-Z]+-\d+', re.IGNORECASE)  
       
     # Check if the input is a URL and extract the issue key  
     if "browse" in input_str:  
         match = issue_key_pattern.search(input_str)  
         if match:  
-            return match.group(0)  
+            return match.group(0).upper()  # Convert to uppercase for consistency  
     else:  
         # Check if the input is a direct issue key  
         match = issue_key_pattern.match(input_str)  
         if match:  
-            return match.group(0)  
+            return match.group(0).upper()  # Convert to uppercase for consistency  
   
     return None  
   
@@ -42,8 +42,9 @@ def find_latest_command_thread_ts(messages, command):
     """  
     Find the latest thread_ts for the given command from the last 5 messages.  
     """  
+    command = command.lower()  
     for message in messages:  
-        if 'text' in message and message['text'].strip().startswith(f"${command}"):  
+        if 'text' in message and message['text'].strip().lower().startswith(f"${command}"):  
             return message.get('ts')  
     return None  
   
@@ -57,7 +58,7 @@ async def handle_special_commands(turn_context: TurnContext) -> bool:
     Returns:  
         bool: True if a special command was handled, False otherwise.  
     """  
-    user_message = turn_context.activity.text.strip()  
+    user_message = turn_context.activity.text.strip().lower()  # Convert to lowercase  
     platform = turn_context.activity.channel_id  # Get the platform (e.g., "slack", "webchat")  
       
     if user_message.startswith('$'):  
@@ -90,22 +91,21 @@ async def handle_special_commands(turn_context: TurnContext) -> bool:
         elif command == "formats":  
             formatting_message = (  
                 "*Formatting Values*:\n\n"  
-                "* Bold text: *this is bold with 2 slash n and 2 stars* \n\n"  
+                "* Bold text: **this is bold with 2 slash n and 2 stars** \n\n"  
                 "* Strikethrough text: ~this is strikethrough~ \n\n"  
                 "* Italic text: _this is italic with 2 slash n_ \n\n"  
-                "* Inline code: \`backslash before backtick`\n\n"  
+                "* Inline code: \\`backslash before backtick`\n\n"  
                 "* Code block:\n```\nthis is a code block with newline inside\n```\n\n"  
             )  
             post_message_to_slack(SLACK_TOKEN, channel_id, formatting_message, thread_ts=thread_ts)  
           
         elif command == "help":  
             help_message = (  
-                f"*Commands Available*:\n\n"  
-                f"*$test*: \`Invokes a special test path.\`\n\n"  
-                f"*$formats*: \`Displays formatting values that work for Slack.\`\n\n"  
-                f"*$jira <issue_key> or <JIRA URL>*: \`Fetches and displays details of the specified JIRA issue.\`\n\n"  
+                f"**Commands Available**:\n\n"  
+                f"**$test**: \\`Invokes a special test path.\\`\n\n"  
+                f"**$formats**: \\`Displays formatting values that work for Slack.\\`\n\n"  
+                f"**$jira <issue_key> or <JIRA URL>**: \\`Fetches and displays details of the specified JIRA issue.\\`\n\n"  
             )  
-
             post_message_to_slack(SLACK_TOKEN, channel_id, help_message, thread_ts=thread_ts)  
           
         elif command == "jira" and len(command_parts) > 1:  
