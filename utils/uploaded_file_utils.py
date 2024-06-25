@@ -26,7 +26,7 @@ def extract_channel_id(conversation_id):
         logging.error("Unable to extract channel ID from conversation ID")  
         return None  
   
-async def handle_image_attachment(turn_context, attachment, thread_ts=None):  
+async def handle_image_attachment(turn_context, attachment):  
     channel_id = extract_channel_id(turn_context.activity.conversation.id)  
     logging.debug(f"File is being uploaded --invoking the last 5 messages in channel, {channel_id}...")  
     last_5_messages = get_last_5_messages(SLACK_TOKEN, channel_id)  
