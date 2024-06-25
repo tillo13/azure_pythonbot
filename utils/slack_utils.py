@@ -220,11 +220,6 @@ def get_last_5_messages(token, channel):
         return []  
 
 
-
-
-
-
-  
 def post_message_to_slack(token, channel, text, blocks=None, thread_ts=None):  
     headers = {  
         "Content-Type": "application/json",  
@@ -243,7 +238,8 @@ def post_message_to_slack(token, channel, text, blocks=None, thread_ts=None):
         payload = {  
             "channel": channel,  
             "text": chunk,  # This is required for fallback in case blocks are not supported  
-            "mrkdwn": True  
+            "mrkdwn": True,  
+            "thread_ts": thread_ts  # Ensure thread_ts is included in the payload  
         }  
         if blocks:  
             # Adjust the blocks to contain only the current chunk  
@@ -255,23 +251,13 @@ def post_message_to_slack(token, channel, text, blocks=None, thread_ts=None):
                 }  
             }] + blocks[1:]  # Keep the rest of the blocks unchanged  
             payload["blocks"] = chunk_blocks  
-        if thread_ts:  
-            payload["thread_ts"] = thread_ts  
   
-        # Print the URL and JSON payload  
-        print("******HERE IS THE URL AND JSON WE ARE ABOUT TO SEND INTO SLACK*****")  
-        print(f"URL: {SLACK_CHAT_URL}")  
-        print(f"Request JSON: {json.dumps(payload, indent=2)}")  
-  
-        logging.debug(f"Payload to Slack: {payload}")  
-        #logging.debug(f"Payload to Slack being seent here... (debug by #uncommenting in slack_utils.py")  
+        logging.debug(f"Payload to Slack: {json.dumps(payload, indent=2)}")  
   
         try:  
             response = requests.post(SLACK_CHAT_URL, headers=headers, json=payload)  
             response_data = response.json()  
-  
-            #logging.debug(f"Response from Slack: {response_data}")  
-            logging.debug(f"Response from Slack incoming... (debug by #uncommenting in slack_utils.py")  
+            logging.debug(f"Response from Slack: {response_data}")  
             if not response_data.get("ok"):  
                 error_message = response_data.get("error", "Unknown error")  
                 logging.error(f"Error posting message to Slack: {response_data}")  
@@ -293,6 +279,7 @@ def post_message_to_slack(token, channel, text, blocks=None, thread_ts=None):
             break  # Stop sending further chunks if there's an error  
   
     return responses  
+
   
 def get_conversation_replies(token, channel, thread_ts):  
     headers = {  
