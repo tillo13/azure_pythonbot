@@ -1,9 +1,9 @@
+import time  
 from botbuilder.core import TurnContext  
 import logging  
 from utils.jira_utils import fetch_issue_details  
 from utils.footer_utils import generate_footer  
-from utils.slack_utils import convert_openai_response_to_slack_mrkdwn, create_slack_message  
-import time  
+from utils.slack_utils import create_slack_message  
   
 async def handle_special_commands(turn_context: TurnContext) -> bool:  
     """  
@@ -22,11 +22,7 @@ async def handle_special_commands(turn_context: TurnContext) -> bool:
         command_parts = user_message[1:].split()  # Split the command into parts  
         command = command_parts[0].lower()  # The main command (e.g., 'jira')  
   
-        if command == "hello":  
-            await turn_context.send_activity("Hello! How can I assist you today?")  
-        elif command == "world":  
-            await turn_context.send_activity("World command received. What would you like to know about the world?")  
-        elif command == "test":  
+        if command == "test":  
             await turn_context.send_activity("special test path invoked!")  
         elif command == "formats":  
             formatting_message = (  
@@ -38,6 +34,14 @@ async def handle_special_commands(turn_context: TurnContext) -> bool:
                 "* Code block:\n```\nthis is a code block with newline inside\n```\n\n"  
             )  
             await turn_context.send_activity(formatting_message)  
+        elif command == "help":  
+            help_message = (  
+                f"**Commands Available**:\n\n"  
+                f"**$test**: \\`TBD, but something we'll put here...\\`\n\n"  
+                f"**$formats**: \\`Displays formatting values that work for Slack.\\`\n\n"  
+                f"**$jira <issue_key>**: \\`Fetches and displays details of the specified JIRA issue.\\`\n\n"  
+            )  
+            await turn_context.send_activity(help_message)  
         elif command == "jira" and len(command_parts) > 1:  
             issue_key = command_parts[1]  
             start_time = time.time()  # Start timing the response  
