@@ -3,6 +3,7 @@ import requests
 import base64  
 from botbuilder.schema import Activity, ActivityTypes  
 from utils.openai_utils import process_and_summarize_text, extract_text_from_pdf, get_openai_image_response  
+from utils.slack_utils import post_message_to_slack, add_reaction_to_message, remove_reaction_from_message, extract_thread_ts, extract_channel_id, SLACK_TOKEN  
 from constants import *  
   
 def download_and_encode_image(url):  
@@ -14,21 +15,22 @@ def download_and_encode_image(url):
         logging.error(f"Error downloading image: {e}")  
         return None  
   
-async def send_message(turn_context, message):  
+async def send_message(turn_context, message, thread_ts=None):  
     await turn_context.send_activity(Activity(  
         type=ActivityTypes.message,  
-        text=message  
+        text=message,  
+        channel_data={"thread_ts": thread_ts} if thread_ts else {}  
     ))  
   
-async def process_attachment(turn_context, attachment, process_func, success_message, error_message):  
+async def process_attachment(turn_context, attachment, process_func, success_message, error_message, thread_ts=None):  
     try:  
-        await send_message(turn_context, success_message)  
-        await turn_context.send_activity(Activity(type=ActivityTypes.typing))  
+        await send_message(turn_context, success_message, thread_ts)  
+        await turn_context.send_activity(Activity(type=ActivityTypes.typing, channel_data={"thread_ts": thread_ts} if thread_ts else {}))  
         result = process_func(attachment.content_url)  
-        await send_message(turn_context, result)  
+        await send_message(turn_context, result, thread_ts)  
     except Exception as e:  
         logging.error(f"Error processing attachment: {e}")  
-        await send_message(turn_context, error_message)  
+        await send_message(turn_context, error_message, thread_ts)  
   
 def process_image(url):  
     base64_image = download_and_encode_image(url)  
@@ -61,11 +63,32 @@ def process_pdf(url):
     else:  
         raise ValueError("Failed to download PDF")  
   
-async def handle_image_attachment(turn_context, attachment, thread_ts=None):  
-    await process_attachment(turn_context, attachment, process_image, MSG_IMAGE_RECEIVED, MSG_IMAGE_ERROR)  
+async def handle_image_attachment(turn_context, attachment):  
+    thread_ts = extract_thread_ts(turn_context.activity) or turn_context.activity.timestamp  
+    channel_id = extract_channel_id(turn_context.activity.conversation.id)  
+    token = SLACK_TOKEN  
   
-async def handle_text_attachment(turn_context, attachment, thread_ts=None):  
-    await process_attachment(turn_context, attachment, process_text, MSG_TEXT_RECEIVED, MSG_TEXT_ERROR)  
+    add_reaction_to_message(token, channel_id, thread_ts, "hourglass")  
+    await process_attachment(turn_context, attachment, process_image, MSG_IMAGE_RECEIVED, MSG_IMAGE_ERROR, thread_ts)  
+    remove_reaction_from_message(token, channel_id, thread_ts, "hourglass")  
+    add_reaction_to_message(token, channel_id, thread_ts, "white_check_mark")  
   
-async def handle_pdf_attachment(turn_context, attachment, thread_ts=None):  
-    await process_attachment(turn_context, attachment, process_pdf, MSG_PDF_RECEIVED, MSG_PDF_ERROR)  
+async def handle_text_attachment(turn_context, attachment):  
+    thread_ts = extract_thread_ts(turn_context.activity) or turn_context.activity.timestamp  
+    channel_id = extract_channel_id(turn_context.activity.conversation.id)  
+    token = SLACK_TOKEN  
+  
+    add_reaction_to_message(token, channel_id, thread_ts, "hourglass")  
+    await process_attachment(turn_context, attachment, process_text, MSG_TEXT_RECEIVED, MSG_TEXT_ERROR, thread_ts)  
+    remove_reaction_from_message(token, channel_id, thread_ts, "hourglass")  
+    add_reaction_to_message(token, channel_id, thread_ts, "white_check_mark")  
+  
+async def handle_pdf_attachment(turn_context, attachment):  
+    thread_ts = extract_thread_ts(turn_context.activity) or turn_context.activity.timestamp  
+    channel_id = extract_channel_id(turn_context.activity.conversation.id)  
+    token = SLACK_TOKEN  
+  
+    add_reaction_to_message(token, channel_id, thread_ts, "hourglass")  
+    await process_attachment(turn_context, attachment, process_pdf, MSG_PDF_RECEIVED, MSG_PDF_ERROR, thread_ts)  
+    remove_reaction_from_message(token, channel_id, thread_ts, "hourglass")  
+    add_reaction_to_message(token, channel_id, thread_ts, "white_check_mark")  
