@@ -15,22 +15,29 @@ def download_and_encode_image(url):
         logging.error(f"Error downloading image: {e}")  
         return None  
   
-async def send_message(turn_context, message, thread_ts=None):  
-    await turn_context.send_activity(Activity(  
-        type=ActivityTypes.message,  
+async def send_message_to_slack(token, channel_id, message, thread_ts=None):  
+    response_data_list = post_message_to_slack(  
+        token=token,  
+        channel=channel_id,  
         text=message,  
-        channel_data={"thread_ts": thread_ts} if thread_ts else {}  
-    ))  
+        thread_ts=thread_ts  
+    )  
+    for response_data in response_data_list:  
+        if not response_data.get("ok"):  
+            logging.error(f"Error posting message to Slack: {response_data.get('error')}")  
   
 async def process_attachment(turn_context, attachment, process_func, success_message, error_message, thread_ts=None):  
+    channel_id = extract_channel_id(turn_context.activity.conversation.id)  
+    token = SLACK_TOKEN  
+  
     try:  
-        await send_message(turn_context, success_message, thread_ts)  
+        await send_message_to_slack(token, channel_id, success_message, thread_ts)  
         await turn_context.send_activity(Activity(type=ActivityTypes.typing, channel_data={"thread_ts": thread_ts} if thread_ts else {}))  
         result = process_func(attachment.content_url)  
-        await send_message(turn_context, result, thread_ts)  
+        await send_message_to_slack(token, channel_id, result, thread_ts)  
     except Exception as e:  
         logging.error(f"Error processing attachment: {e}")  
-        await send_message(turn_context, error_message, thread_ts)  
+        await send_message_to_slack(token, channel_id, error_message, thread_ts)  
   
 def process_image(url):  
     base64_image = download_and_encode_image(url)  
