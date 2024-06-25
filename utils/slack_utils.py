@@ -231,10 +231,6 @@ def post_message_to_slack(token, channel, text, blocks=None, thread_ts=None):
     # Split the text into chunks if it exceeds the limit  
     chunks = split_message_into_chunks(text, MAX_BLOCK_TEXT_LENGTH)  
   
-    # Get the last 5 messages from the channel for logging  
-    last_5_messages = get_last_5_messages(token, channel)  
-    logging.debug(f"Last 5 messages in channel {channel}: {json.dumps(last_5_messages, indent=2)}")  
-  
     responses = []  
   
     for chunk in chunks:  
