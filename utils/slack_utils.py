@@ -76,7 +76,7 @@ def convert_jira_response_to_slack_mrkdwn(issue_details):
   
     # Format the response message  
     response_message = (  
-        f"*Issue Key*: {issue_details['key']}`\n\n"  
+        f"*Issue Key*: `{issue_details['key']}`\n\n"  
         f"*Issue Summary*: `{issue_details['summary']}`\n\n"  
         f"*Status*: `{issue_details['status']}`\n\n"  
         f"*Assignee*: `{issue_details['assignee']}`\n\n"  
