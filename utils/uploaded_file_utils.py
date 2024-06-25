@@ -1,16 +1,16 @@
 import logging  
 import requests  
 import base64  
-import json  # Add this import  
+import json  
 from botbuilder.schema import Activity, ActivityTypes  
-from botbuilder.core import TurnContext  # Add this import  
+from botbuilder.core import TurnContext  
 from utils.openai_utils import process_and_summarize_text, extract_text_from_pdf, get_openai_image_response  
-from utils.slack_utils import extract_channel_id, get_last_5_messages, post_message_to_slack 
+from utils.slack_utils import get_last_5_messages, post_message_to_slack, extract_channel_id  
 from constants import *  
 import os  
   
 SLACK_TOKEN = os.environ.get("APPSETTING_SLACK_TOKEN")  
-   
+  
 def download_and_encode_image(url):  
     try:  
         response = requests.get(url)  
@@ -119,7 +119,9 @@ async def handle_slack_message(turn_context: TurnContext):
         # Check for file uploads and handle them  
         if activity.attachments:  
             await handle_file_uploads(turn_context)  
-
+  
+        # Handle other types of messages if needed  
+        # ...  
   
     except (KeyError, TypeError) as e:  
         logging.error(f"Error processing file upload: {e}")  
