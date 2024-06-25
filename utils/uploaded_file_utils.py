@@ -3,7 +3,7 @@ import requests
 import base64  
 from botbuilder.schema import Activity, ActivityTypes  
 from utils.openai_utils import process_and_summarize_text, extract_text_from_pdf, get_openai_image_response  
-from utils.slack_utils import get_last_5_messages, post_message_to_slack  
+from utils.slack_utils import get_last_5_messages, post_message_to_slack, find_latest_file_thread_ts  
 from constants import *  
 import os  
   
@@ -17,15 +17,6 @@ def extract_channel_id(conversation_id):
         logging.error("Unable to extract channel ID from conversation ID")  
         return None  
   
-def find_latest_attachment_thread_ts(messages, attachment_url):  
-    """  
-    Find the latest thread_ts for the given attachment URL from the last 5 messages.  
-    """  
-    for message in messages:  
-        if 'text' in message and attachment_url in message['text']:  
-            return message.get('ts')  
-    return None  
-  
 def download_and_encode_image(url):  
     try:  
         response = requests.get(url)  
@@ -38,8 +29,8 @@ def download_and_encode_image(url):
 async def handle_image_attachment(turn_context, attachment, thread_ts=None):  
     channel_id = extract_channel_id(turn_context.activity.conversation.id)  
     last_5_messages = get_last_5_messages(SLACK_TOKEN, channel_id)  
-    thread_ts = find_latest_attachment_thread_ts(last_5_messages, attachment.content_url) or thread_ts  
-      
+    thread_ts = find_latest_file_thread_ts(last_5_messages, 'png') or thread_ts  # Assuming PNG type for example  
+  
     print(f"********THE IMAGE FILE UPLOADED WILL PASTE THE RESPONSE IN THIS SUBTHREAD {thread_ts}******")  
     image_url = attachment.content_url  
     base64_image = download_and_encode_image(image_url)  
@@ -75,8 +66,8 @@ async def handle_image_attachment(turn_context, attachment, thread_ts=None):
 async def handle_text_attachment(turn_context, attachment, thread_ts=None):  
     channel_id = extract_channel_id(turn_context.activity.conversation.id)  
     last_5_messages = get_last_5_messages(SLACK_TOKEN, channel_id)  
-    thread_ts = find_latest_attachment_thread_ts(last_5_messages, attachment.content_url) or thread_ts  
-      
+    thread_ts = find_latest_file_thread_ts(last_5_messages, 'txt') or thread_ts  # Assuming TXT type for example  
+  
     print(f"********THE TXT FILE UPLOADED WILL PASTE THE RESPONSE IN THIS SUBTHREAD {thread_ts}******")  
     file_url = attachment.content_url  
     file_content = requests.get(file_url).text  
@@ -118,8 +109,8 @@ async def handle_text_attachment(turn_context, attachment, thread_ts=None):
 async def handle_pdf_attachment(turn_context, attachment, thread_ts=None):  
     channel_id = extract_channel_id(turn_context.activity.conversation.id)  
     last_5_messages = get_last_5_messages(SLACK_TOKEN, channel_id)  
-    thread_ts = find_latest_attachment_thread_ts(last_5_messages, attachment.content_url) or thread_ts  
-      
+    thread_ts = find_latest_file_thread_ts(last_5_messages, 'pdf') or thread_ts  # Assuming PDF type for example  
+  
     print(f"********THE PDF FILE UPLOADED WILL PASTE THE RESPONSE IN THIS SUBTHREAD {thread_ts}******")  
     file_url = attachment.content_url  
     response = requests.get(file_url)  

@@ -183,12 +183,14 @@ def split_message_into_chunks(message: str, max_length: int) -> list:
     return [message[i:i + max_length] for i in range(0, len(message), max_length)]  
 
 
-
-
-
-
-
-
+def find_latest_file_thread_ts(messages, file_type):  
+    """Find the latest thread_ts for the given file type from the last 5 messages."""  
+    for message in messages:  
+        if 'files' in message:  
+            for file in message['files']:  
+                if file['filetype'] == file_type:  
+                    return message.get('ts')  
+    return None  
 
 def get_last_5_messages(token, channel):  
     headers = {  
