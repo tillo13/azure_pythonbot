@@ -184,7 +184,13 @@ def split_message_into_chunks(message: str, max_length: int) -> list:
 
 
 
-
+def extract_channel_id(conversation_id):  
+    conversation_id_parts = conversation_id.split(":")  
+    if len(conversation_id_parts) >= 3:  
+        return conversation_id_parts[2]  
+    else:  
+        logging.error("Unable to extract channel ID from conversation ID")  
+        return None  
 
 
 
