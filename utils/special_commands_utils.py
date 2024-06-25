@@ -1,10 +1,11 @@
 import re  
+import os
 import time  
 from botbuilder.core import TurnContext  
 import logging  
 from utils.jira_utils import fetch_issue_details  
 from utils.footer_utils import generate_footer  
-from utils.slack_utils import create_slack_message  
+from utils.slack_utils import create_slack_message, post_message_to_slack  
   
 JIRA_BASE_URL = "https://teradata-pe.atlassian.net/"  
   
@@ -14,7 +15,7 @@ def extract_issue_key(input_str):
     """  
     # Regular expression to match JIRA issue key  
     issue_key_pattern = re.compile(r'[A-Z]+-\d+')  
-      
+  
     # Check if the input is a URL and extract the issue key  
     if JIRA_BASE_URL in input_str:  
         match = issue_key_pattern.search(input_str)  
@@ -25,7 +26,7 @@ def extract_issue_key(input_str):
         match = issue_key_pattern.match(input_str)  
         if match:  
             return match.group(0)  
-      
+  
     return None  
   
 async def handle_special_commands(turn_context: TurnContext) -> bool:  
@@ -53,7 +54,7 @@ async def handle_special_commands(turn_context: TurnContext) -> bool:
         command = command_parts[0].lower() if command_parts[0] else "jira"  # The main command (e.g., 'jira')  
   
         if command == "test":  
-            await turn_context.send_activity("special test path invoked!", additional_properties={'thread_ts': thread_ts})  
+            await turn_context.send_activity("special test path invoked!")  
         elif command == "formats":  
             formatting_message = (  
                 "*Formatting Values*:\n\n"  
@@ -63,7 +64,7 @@ async def handle_special_commands(turn_context: TurnContext) -> bool:
                 "* Inline code: \\`backslash before backtick`\n\n"  
                 "* Code block:\n```\nthis is a code block with newline inside\n```\n\n"  
             )  
-            await turn_context.send_activity(formatting_message, additional_properties={'thread_ts': thread_ts})  
+            await turn_context.send_activity(formatting_message)  
         elif command == "help":  
             help_message = (  
                 f"**Commands Available**:\n\n"  
@@ -71,7 +72,7 @@ async def handle_special_commands(turn_context: TurnContext) -> bool:
                 f"**$formats**: \\`Displays formatting values that work for Slack.\\`\n\n"  
                 f"**$jira <issue_key> or <JIRA URL>**: \\`Fetches and displays details of the specified JIRA issue.\\`\n\n"  
             )  
-            await turn_context.send_activity(help_message, additional_properties={'thread_ts': thread_ts})  
+            await turn_context.send_activity(help_message)  
         elif command == "jira" and len(command_parts) > 1 or JIRA_BASE_URL in user_message:  
             input_str = command_parts[1] if len(command_parts) > 1 else user_message  
             issue_key = extract_issue_key(input_str)  
@@ -85,13 +86,20 @@ async def handle_special_commands(turn_context: TurnContext) -> bool:
                     # Create Slack message with the JIRA response  
                     slack_message = create_slack_message(issue_details, footer, is_jira_response=True)  
   
-                    await turn_context.send_activity(slack_message['blocks'][0]['text']['text'], additional_properties={'thread_ts': thread_ts})  
+                    # Post the message to Slack using the Slack-specific utility  
+                    post_message_to_slack(  
+                        token=os.environ.get("APPSETTING_SLACK_TOKEN"),   
+                        channel=turn_context.activity.conversation.id.split(":")[2],  
+                        text=slack_message['blocks'][0]['text']['text'],  
+                        blocks=slack_message['blocks'],  
+                        thread_ts=thread_ts  
+                    )  
                 except Exception as err:  
-                    await turn_context.send_activity(f"Error fetching JIRA issue: {err}", additional_properties={'thread_ts': thread_ts})  
+                    await turn_context.send_activity(f"Error fetching JIRA issue: {err}")  
             else:  
-                await turn_context.send_activity("Invalid JIRA issue key or URL.", additional_properties={'thread_ts': thread_ts})  
+                await turn_context.send_activity("Invalid JIRA issue key or URL.")  
         else:  
-            await turn_context.send_activity(f"I don't understand that command: {command}", additional_properties={'thread_ts': thread_ts})  
+            await turn_context.send_activity(f"I don't understand that command: {command}")  
   
         return True  
   
