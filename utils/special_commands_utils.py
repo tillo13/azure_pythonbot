@@ -5,22 +5,9 @@ from botbuilder.core import TurnContext
 import logging  
 from utils.jira_utils import fetch_issue_details  
 from utils.footer_utils import generate_footer  
-from utils.slack_utils import create_slack_message, get_last_5_messages, post_message_to_slack, add_reaction_to_message, remove_reaction_from_message
+from utils.slack_utils import create_slack_message, post_message_to_slack, add_reaction_to_message, remove_reaction_from_message, extract_channel_id, extract_thread_ts, SLACK_TOKEN
 import os  
 
-
-#print the gpt4o value from the 
-
-SLACK_TOKEN = os.environ.get("APPSETTING_SLACK_TOKEN")  
-  
-def extract_channel_id(conversation_id):  
-    conversation_id_parts = conversation_id.split(":")  
-    if len(conversation_id_parts) >= 3:  
-        return conversation_id_parts[2]  
-    else:  
-        logging.error("Unable to extract channel ID from conversation ID")  
-        return None  
-  
 def extract_jira_issue_key(input_str):  
     """  
     Extracts the JIRA issue key from a given string.  
@@ -41,25 +28,6 @@ def extract_jira_issue_key(input_str):
   
     return None  
   
-
-def find_latest_command_thread_ts(messages, command):  
-    """  
-    Find the latest thread_ts for the given command from the last 5 messages.  
-    """  
-    command = command.lower()  
-    for message in messages:  
-        if 'text' in message and message['text'].strip().lower().startswith(f"${command}"):  
-            return message.get('thread_ts') or message.get('ts')  
-    return None  
-  
-
-def extract_thread_ts(activity):  
-    """  
-    Extract the thread_ts from the activity.  
-    """  
-    return activity.channel_data.get('SlackMessage', {}).get('event', {}).get('thread_ts')  
-  
-
 async def handle_special_commands(turn_context: TurnContext) -> bool:  
     """Handle special commands starting with '$'.  
 

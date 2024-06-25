@@ -3,11 +3,41 @@ import logging
 import re  
 from utils.footer_utils import generate_footer  
 import json  
+import os
+
+SLACK_TOKEN = os.environ.get("APPSETTING_SLACK_TOKEN")    
   
 SLACK_CHAT_URL = "https://slack.com/api/chat.postMessage"  
 SLACK_CONVERSATIONS_REPLIES_URL = "https://slack.com/api/conversations.replies"  
 SLACK_ADD_REACTION_URL = "https://slack.com/api/reactions.add"  
 SLACK_REMOVE_REACTION_URL = "https://slack.com/api/reactions.remove"  
+
+###mostly for special_commands_utils.py start #####
+def extract_channel_id(conversation_id):  
+    conversation_id_parts = conversation_id.split(":")  
+    if len(conversation_id_parts) >= 3:  
+        return conversation_id_parts[2]  
+    else:  
+        logging.error("Unable to extract channel ID from conversation ID")  
+        return None  
+    
+def find_latest_command_thread_ts(messages, command):  
+    """  
+    Find the latest thread_ts for the given command from the last 5 messages.  
+    """  
+    command = command.lower()  
+    for message in messages:  
+        if 'text' in message and message['text'].strip().lower().startswith(f"${command}"):  
+            return message.get('thread_ts') or message.get('ts')  
+    return None  
+  
+
+def extract_thread_ts(activity):  
+    """  
+    Extract the thread_ts from the activity.  
+    """  
+    return activity.channel_data.get('SlackMessage', {}).get('event', {}).get('thread_ts')  
+###mostly for special_commands_utils.py end #####
   
 def convert_openai_response_to_slack_mrkdwn(text):  
     #logging.debug(f"Original text: {text}")  
