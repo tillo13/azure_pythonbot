@@ -214,13 +214,8 @@ def post_message_to_slack(token, channel, text, blocks=None, thread_ts=None):
             payload["blocks"] = chunk_blocks  
         if thread_ts:  
             payload["thread_ts"] = thread_ts  
-
-
-        # Remove None values from payload  
-        payload = {k: v for k, v in payload.items() if v is not None}    
-
-          
-        # Print the URL and JSON payload
+  
+        # Print the URL and JSON payload  
         print("******HERE IS THE URL AND JSON WE ARE ABOUT TO SEND INTO SLACK*****")  
         print(f"URL: {SLACK_CHAT_URL}")  
         print(f"Request JSON: {json.dumps(payload, indent=2)}")  

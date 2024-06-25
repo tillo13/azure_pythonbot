@@ -1,34 +1,34 @@
 import re  
-import os  
 import time  
 from botbuilder.core import TurnContext  
 import logging  
 from utils.jira_utils import fetch_issue_details  
 from utils.footer_utils import generate_footer  
-from utils.slack_utils import create_slack_message, post_message_to_slack  
+from utils.slack_utils import create_slack_message  
   
-JIRA_BASE_URL = "https://teradata-pe.atlassian.net/"  
-  
-def extract_issue_key(input_str):  
+def extract_jira_issue_key(input_str):  
     """  
     Extracts the JIRA issue key from a given string.  
     """  
+    # Regular expression to match JIRA issue key  
     issue_key_pattern = re.compile(r'[A-Z]+-\d+')  
-  
-    if JIRA_BASE_URL in input_str:  
+      
+    # Check if the input is a URL and extract the issue key  
+    if "browse" in input_str:  
         match = issue_key_pattern.search(input_str)  
         if match:  
             return match.group(0)  
     else:  
+        # Check if the input is a direct issue key  
         match = issue_key_pattern.match(input_str)  
         if match:  
             return match.group(0)  
-  
+      
     return None  
   
 async def handle_special_commands(turn_context: TurnContext) -> bool:  
     """  
-    Handle special commands starting with '$' or specific URLs.  
+    Handle special commands starting with '$'.  
   
     Args:  
         turn_context (TurnContext): The context object for the turn.  
@@ -37,36 +37,15 @@ async def handle_special_commands(turn_context: TurnContext) -> bool:
         bool: True if a special command was handled, False otherwise.  
     """  
     user_message = turn_context.activity.text.strip()  
-    platform = turn_context.activity.channel_id  
+    platform = turn_context.activity.channel_id  # Get the platform (e.g., "slack", "webchat")  
   
-    # Extract thread_ts from Slack message  
-    thread_ts = None  
-    if 'channel_data' in turn_context.activity.additional_properties:  
-        slack_message = turn_context.activity.additional_properties['channel_data'].get('SlackMessage', {})  
-        thread_ts = slack_message.get('thread_ts', slack_message.get('ts'))  
-  
-    logging.debug(f"Extracted thread_ts before formatting: {thread_ts}")  
-  
-    # Ensure thread_ts is correctly formatted  
-    if thread_ts and '.' not in thread_ts:  
-        thread_ts = f"{thread_ts[:-6]}.{thread_ts[-6:]}"  
-  
-    logging.debug(f"Formatted thread_ts: {thread_ts}")  
-  
-    if user_message.startswith('$') or JIRA_BASE_URL in user_message:  
-        command_parts = user_message[1:].split(maxsplit=1) if user_message.startswith('$') else [None, user_message]  
-        command = command_parts[0].lower() if command_parts[0] else "jira"  
+    if user_message.startswith('$'):  
+        command_parts = user_message[1:].split(maxsplit=1)  # Split the command into parts  
+        command = command_parts[0].lower()  # The main command (e.g., 'jira')  
   
         if command == "test":  
-            logging.debug("Handling special command: test")  
-            await post_message_to_slack(  
-                token=os.environ.get("APPSETTING_SLACK_TOKEN"),  
-                channel=turn_context.activity.conversation.id.split(":")[2],  
-                text="special test path invoked!",  
-                thread_ts=thread_ts  
-            )  
+            await turn_context.send_activity("special test path invoked!")  
         elif command == "formats":  
-            logging.debug("Handling special command: formats")  
             formatting_message = (  
                 "*Formatting Values*:\n\n"  
                 "* Bold text: **this is bold with 2 slash n and 2 stars** \n\n"  
@@ -75,70 +54,35 @@ async def handle_special_commands(turn_context: TurnContext) -> bool:
                 "* Inline code: \\`backslash before backtick`\n\n"  
                 "* Code block:\n```\nthis is a code block with newline inside\n```\n\n"  
             )  
-            await post_message_to_slack(  
-                token=os.environ.get("APPSETTING_SLACK_TOKEN"),  
-                channel=turn_context.activity.conversation.id.split(":")[2],  
-                text=formatting_message,  
-                thread_ts=thread_ts  
-            )  
+            await turn_context.send_activity(formatting_message)  
         elif command == "help":  
-            logging.debug("Handling special command: help")  
             help_message = (  
                 f"**Commands Available**:\n\n"  
                 f"**$test**: \\`Invokes a special test path.\\`\n\n"  
                 f"**$formats**: \\`Displays formatting values that work for Slack.\\`\n\n"  
                 f"**$jira <issue_key> or <JIRA URL>**: \\`Fetches and displays details of the specified JIRA issue.\\`\n\n"  
             )  
-            await post_message_to_slack(  
-                token=os.environ.get("APPSETTING_SLACK_TOKEN"),  
-                channel=turn_context.activity.conversation.id.split(":")[2],  
-                text=help_message,  
-                thread_ts=thread_ts  
-            )  
-        elif command == "jira" and len(command_parts) > 1 or JIRA_BASE_URL in user_message:  
-            logging.debug("Handling special command: jira")  
-            input_str = command_parts[1] if len(command_parts) > 1 else user_message  
-            issue_key = extract_issue_key(input_str)  
+            await turn_context.send_activity(help_message)  
+        elif command == "jira" and len(command_parts) > 1:  
+            input_str = command_parts[1]  
+            issue_key = extract_jira_issue_key(input_str)  
             if issue_key:  
-                start_time = time.time()  
+                start_time = time.time()  # Start timing the response  
                 try:  
                     issue_details = await fetch_issue_details(issue_key)  
                     response_time = time.time() - start_time  
                     footer = generate_footer(platform, response_time)  
   
+                    # Create Slack message with the JIRA response  
                     slack_message = create_slack_message(issue_details, footer, is_jira_response=True)  
   
-                    await post_message_to_slack(  
-                        token=os.environ.get("APPSETTING_SLACK_TOKEN"),  
-                        channel=turn_context.activity.conversation.id.split(":")[2],  
-                        text=slack_message['blocks'][0]['text']['text'],  
-                        blocks=slack_message['blocks'],  
-                        thread_ts=thread_ts  
-                    )  
+                    await turn_context.send_activity(slack_message['blocks'][0]['text']['text'])  
                 except Exception as err:  
-                    logging.error(f"Error fetching JIRA issue: {err}")  
-                    await post_message_to_slack(  
-                        token=os.environ.get("APPSETTING_SLACK_TOKEN"),  
-                        channel=turn_context.activity.conversation.id.split(":")[2],  
-                        text=f"Error fetching JIRA issue: {err}",  
-                        thread_ts=thread_ts  
-                    )  
+                    await turn_context.send_activity(f"Error fetching JIRA issue: {err}")  
             else:  
-                logging.debug("Invalid JIRA issue key or URL")  
-                await post_message_to_slack(  
-                    token=os.environ.get("APPSETTING_SLACK_TOKEN"),  
-                    channel=turn_context.activity.conversation.id.split(":")[2],  
-                    text="Invalid JIRA issue key or URL.",  
-                    thread_ts=thread_ts  
-                )  
+                await turn_context.send_activity("Invalid JIRA issue key or URL.")  
         else:  
-            logging.debug(f"Unknown command: {command}")  
-            await post_message_to_slack(  
-                token=os.environ.get("APPSETTING_SLACK_TOKEN"),  
-                channel=turn_context.activity.conversation.id.split(":")[2],  
-                text=f"I don't understand that command: {command}",  
-                thread_ts=thread_ts  
-            )  
+            await turn_context.send_activity(f"I don't understand that command: {command}")  
   
         return True  
   
