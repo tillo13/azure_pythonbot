@@ -26,42 +26,54 @@ def extract_channel_id(conversation_id):
         logging.error("Unable to extract channel ID from conversation ID")  
         return None  
   
+
 async def handle_image_attachment(turn_context, attachment, thread_ts=None):  
     channel_id = extract_channel_id(turn_context.activity.conversation.id)  
     logging.debug(f"File is being uploaded --invoking the last 5 messages in channel, {channel_id}...")  
     last_5_messages = get_last_5_messages(SLACK_TOKEN, channel_id)  
     logging.debug(f"Last 5 messages in channel {channel_id}: {last_5_messages}")  
   
-    print(f"********THE IMAGE FILE UPLOADED WILL PASTE THE RESPONSE IN THIS SUBTHREAD {thread_ts}******")  
+    # Identify the message containing the image  
+    image_message_ts = None  
+    for message in last_5_messages:  
+        if 'files' in message and any(file['mimetype'].startswith('image/') for file in message['files']):  
+            image_message_ts = message['ts']  
+            break  
+  
+    if image_message_ts is None:  
+        logging.error("No image found in the last 5 messages")  
+        return  
+  
+    print(f"********THE IMAGE FILE UPLOADED WILL PASTE THE RESPONSE IN THIS SUBTHREAD {image_message_ts}******")  
     image_url = attachment.content_url  
     base64_image = download_and_encode_image(image_url)  
     if base64_image:  
-        print(f"*****PRINTING constants.py message {MSG_IMAGE_RECEIVED} on thread_ts {thread_ts}*****")  
+        print(f"*****PRINTING constants.py message {MSG_IMAGE_RECEIVED} on thread_ts {image_message_ts}*****")  
         await turn_context.send_activity(Activity(  
             type=ActivityTypes.message,  
             text=MSG_IMAGE_RECEIVED,  
-            channel_data={"thread_ts": thread_ts} if thread_ts else None  
+            channel_data={"thread_ts": image_message_ts}  
         ))  
         logging.debug(f"Base64 Image Length: {len(base64_image)}")  
         image_data_url = f"data:image/jpeg;base64,{base64_image}"  
         openai_response = get_openai_image_response(image_data_url)  
-        print(f"*****PRINTING constants.py message {MSG_IMAGE_DETAILS} on thread_ts {thread_ts}*****")  
+        print(f"*****PRINTING constants.py message {MSG_IMAGE_DETAILS} on thread_ts {image_message_ts}*****")  
         await turn_context.send_activity(Activity(  
             type=ActivityTypes.message,  
             text=MSG_IMAGE_DETAILS,  
-            channel_data={"thread_ts": thread_ts} if thread_ts else None  
+            channel_data={"thread_ts": image_message_ts}  
         ))  
         await turn_context.send_activity(Activity(  
             type=ActivityTypes.message,  
             text=openai_response,  
-            channel_data={"thread_ts": thread_ts} if thread_ts else None  
+            channel_data={"thread_ts": image_message_ts}  
         ))  
     else:  
-        print(f"*****PRINTING constants.py message {MSG_IMAGE_ERROR} on thread_ts {thread_ts}*****")  
+        print(f"*****PRINTING constants.py message {MSG_IMAGE_ERROR} on thread_ts {image_message_ts}*****")  
         await turn_context.send_activity(Activity(  
             type=ActivityTypes.message,  
             text=MSG_IMAGE_ERROR,  
-            channel_data={"thread_ts": thread_ts} if thread_ts else None  
+            channel_data={"thread_ts": image_message_ts}  
         ))  
   
 async def handle_text_attachment(turn_context, attachment, thread_ts=None):  
