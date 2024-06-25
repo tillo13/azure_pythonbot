@@ -1,12 +1,12 @@
 # footer_utils.py  
 import logging  
   
-APP_VERSION = "1.624.1911"  
+APP_VERSION = "1.624.1923"  
 OPENAI_MODEL = "gpt4o"  
 
 #   
 
-#print out the openai_model value below 
+#print out the openai_model value below ./
 print(OPENAI_MODEL)  
 def generate_footer(platform: str, response_time: float) -> str:  
     """Generates a footer string with application version, OpenAI model information, and response time.  
