@@ -1,12 +1,11 @@
 import re  
-import os
 import time  
 from botbuilder.core import TurnContext  
 import logging  
 from utils.jira_utils import fetch_issue_details  
 from utils.footer_utils import generate_footer  
-from utils.slack_utils import create_slack_message  
-from utils.slack_utils import post_message_to_slack  # Import this function  
+from utils.slack_utils import create_slack_message, post_message_to_slack  # Import these functions  
+import os  
   
 def extract_jira_issue_key(input_str):  
     """ Extracts the JIRA issue key from a given string. """  
