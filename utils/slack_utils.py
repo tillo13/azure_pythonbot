@@ -218,10 +218,10 @@ def post_message_to_slack(token, channel, text, blocks=None, thread_ts=None):
         # Print the URL and JSON payload  
         print("******HERE IS THE URL AND JSON WE ARE ABOUT TO SEND INTO SLACK*****")  
         print(f"URL: {SLACK_CHAT_URL}")  
-        #print(f"Request JSON: {json.dumps(payload, indent=2)}")  
+        print(f"Request JSON: {json.dumps(payload, indent=2)}")  
   
-        #logging.debug(f"Payload to Slack: {payload}")  
-        logging.debug(f"Payload to Slack being seent here... (debug by #uncommenting in slack_utils.py")  
+        logging.debug(f"Payload to Slack: {payload}")  
+        #logging.debug(f"Payload to Slack being seent here... (debug by #uncommenting in slack_utils.py")  
   
   
         try:  
