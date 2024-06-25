@@ -8,39 +8,6 @@ SLACK_CHAT_URL = "https://slack.com/api/chat.postMessage"
 SLACK_CONVERSATIONS_REPLIES_URL = "https://slack.com/api/conversations.replies"  
 SLACK_ADD_REACTION_URL = "https://slack.com/api/reactions.add"  
 SLACK_REMOVE_REACTION_URL = "https://slack.com/api/reactions.remove"  
-
-
-SLACK_CONVERSATIONS_HISTORY_URL = "https://slack.com/api/conversations.history"  
-  
-def get_latest_help_message_ts(token, channel):  
-    headers = {  
-        "Content-Type": "application/json",  
-        "Authorization": f"Bearer {token}"  
-    }  
-    params = {  
-        "channel": channel,  
-        "limit": 100  # Adjust as needed  
-    }  
-  
-    try:  
-        response = requests.get(SLACK_CONVERSATIONS_HISTORY_URL, headers=headers, params=params)  
-        response_data = response.json()  
-          
-        if not response_data.get("ok"):  
-            error_message = response_data.get("error", "Unknown error")  
-            logging.error(f"Error fetching conversation history: {response_data}")  
-            return None  
-  
-        for message in response_data["messages"]:  
-            if "$help" in message.get("text", ""):  
-                return message.get("ts")  
-          
-        logging.info("No $help message found in the recent history.")  
-        return None  
-  
-    except requests.exceptions.RequestException as e:  
-        logging.error(f"Exception occurred while fetching conversation history: {e}")  
-        return None  
   
 def convert_openai_response_to_slack_mrkdwn(text):  
     #logging.debug(f"Original text: {text}")  
@@ -214,6 +181,43 @@ def remove_reaction_from_message(token, channel, timestamp, name):
 def split_message_into_chunks(message: str, max_length: int) -> list:  
     """Split a message into chunks that are within the specified max length."""  
     return [message[i:i + max_length] for i in range(0, len(message), max_length)]  
+
+
+
+
+
+
+
+
+
+def get_last_5_messages(token, channel):  
+    headers = {  
+        "Content-Type": "application/x-www-form-urlencoded",  
+        "Authorization": f"Bearer {token}"  
+    }  
+  
+    params = {  
+        "channel": channel,  
+        "limit": 5  
+    }  
+  
+    try:  
+        response = requests.get('https://slack.com/api/conversations.history', headers=headers, params=params)  
+        response_data = response.json()  
+        if response_data.get("ok"):  
+            return response_data.get("messages", [])  
+        else:  
+            logging.error(f"Error retrieving messages: {response_data.get('error', 'Unknown error')}")  
+            return []  
+    except requests.exceptions.RequestException as e:  
+        logging.error(f"Exception occurred while retrieving messages: {e}")  
+        return []  
+
+
+
+
+
+
   
 def post_message_to_slack(token, channel, text, blocks=None, thread_ts=None):  
     headers = {  
@@ -226,6 +230,10 @@ def post_message_to_slack(token, channel, text, blocks=None, thread_ts=None):
   
     # Split the text into chunks if it exceeds the limit  
     chunks = split_message_into_chunks(text, MAX_BLOCK_TEXT_LENGTH)  
+  
+    # Get the last 5 messages from the channel for logging  
+    last_5_messages = get_last_5_messages(token, channel)  
+    logging.debug(f"Last 5 messages in channel {channel}: {json.dumps(last_5_messages, indent=2)}")  
   
     responses = []  
   
@@ -255,7 +263,6 @@ def post_message_to_slack(token, channel, text, blocks=None, thread_ts=None):
   
         logging.debug(f"Payload to Slack: {payload}")  
         #logging.debug(f"Payload to Slack being seent here... (debug by #uncommenting in slack_utils.py")  
-  
   
         try:  
             response = requests.post(SLACK_CHAT_URL, headers=headers, json=payload)  
