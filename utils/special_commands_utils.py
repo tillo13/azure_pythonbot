@@ -1,3 +1,4 @@
+import re  
 import time  
 from botbuilder.core import TurnContext  
 import logging  
@@ -5,9 +6,31 @@ from utils.jira_utils import fetch_issue_details
 from utils.footer_utils import generate_footer  
 from utils.slack_utils import create_slack_message  
   
+JIRA_BASE_URL = "https://teradata-pe.atlassian.net/"  
+  
+def extract_issue_key(input_str):  
+    """  
+    Extracts the JIRA issue key from a given string.  
+    """  
+    # Regular expression to match JIRA issue key  
+    issue_key_pattern = re.compile(r'[A-Z]+-\d+')  
+      
+    # Check if the input is a URL and extract the issue key  
+    if "browse" in input_str:  
+        match = issue_key_pattern.search(input_str)  
+        if match:  
+            return match.group(0)  
+    else:  
+        # Check if the input is a direct issue key  
+        match = issue_key_pattern.match(input_str)  
+        if match:  
+            return match.group(0)  
+      
+    return None  
+  
 async def handle_special_commands(turn_context: TurnContext) -> bool:  
     """  
-    Handle special commands starting with '$'.  
+    Handle special commands starting with '$' or specific URLs.  
   
     Args:  
         turn_context (TurnContext): The context object for the turn.  
@@ -18,9 +41,10 @@ async def handle_special_commands(turn_context: TurnContext) -> bool:
     user_message = turn_context.activity.text.strip()  
     platform = turn_context.activity.channel_id  # Get the platform (e.g., "slack", "webchat")  
   
-    if user_message.startswith('$'):  
-        command_parts = user_message[1:].split()  # Split the command into parts  
-        command = command_parts[0].lower()  # The main command (e.g., 'jira')  
+    # Check if the input is a special command or a specific JIRA URL  
+    if user_message.startswith('$') or user_message.startswith(JIRA_BASE_URL):  
+        command_parts = user_message[1:].split(maxsplit=1) if user_message.startswith('$') else [None, user_message]  # Split the command into parts  
+        command = command_parts[0].lower() if command_parts[0] else "jira"  # The main command (e.g., 'jira')  
   
         if command == "test":  
             await turn_context.send_activity("special test path invoked!")  
@@ -37,25 +61,29 @@ async def handle_special_commands(turn_context: TurnContext) -> bool:
         elif command == "help":  
             help_message = (  
                 f"**Commands Available**:\n\n"  
-                f"**$test**: \\`TBD, but something we'll put here...\\`\n\n"  
+                f"**$test**: \\`Invokes a special test path.\\`\n\n"  
                 f"**$formats**: \\`Displays formatting values that work for Slack.\\`\n\n"  
-                f"**$jira <issue_key>**: \\`Fetches and displays details of the specified JIRA issue.\\`\n\n"  
+                f"**$jira <issue_key> or <JIRA URL>**: \\`Fetches and displays details of the specified JIRA issue.\\`\n\n"  
             )  
             await turn_context.send_activity(help_message)  
-        elif command == "jira" and len(command_parts) > 1:  
-            issue_key = command_parts[1]  
-            start_time = time.time()  # Start timing the response  
-            try:  
-                issue_details = await fetch_issue_details(issue_key)  
-                response_time = time.time() - start_time  
-                footer = generate_footer(platform, response_time)  
+        elif command == "jira" and len(command_parts) > 1 or user_message.startswith(JIRA_BASE_URL):  
+            input_str = command_parts[1] if len(command_parts) > 1 else user_message  
+            issue_key = extract_issue_key(input_str)  
+            if issue_key:  
+                start_time = time.time()  # Start timing the response  
+                try:  
+                    issue_details = await fetch_issue_details(issue_key)  
+                    response_time = time.time() - start_time  
+                    footer = generate_footer(platform, response_time)  
   
-                # Create Slack message with the JIRA response  
-                slack_message = create_slack_message(issue_details, footer, is_jira_response=True)  
+                    # Create Slack message with the JIRA response  
+                    slack_message = create_slack_message(issue_details, footer, is_jira_response=True)  
   
-                await turn_context.send_activity(slack_message['blocks'][0]['text']['text'])  
-            except Exception as err:  
-                await turn_context.send_activity(f"Error fetching JIRA issue: {err}")  
+                    await turn_context.send_activity(slack_message['blocks'][0]['text']['text'])  
+                except Exception as err:  
+                    await turn_context.send_activity(f"Error fetching JIRA issue: {err}")  
+            else:  
+                await turn_context.send_activity("Invalid JIRA issue key or URL.")  
         else:  
             await turn_context.send_activity(f"I don't understand that command: {command}")  
   
