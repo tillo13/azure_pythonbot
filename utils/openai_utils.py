@@ -141,6 +141,23 @@ def get_openai_response(user_message, chat_history=None, source=None):
         return {"error": f"Sorry, I couldn't process your request. Error: {e}"}, 'gpt4o'  
 
 
+def moderate_content(content):  
+    logging.debug("Entered moderate_content function")  
+    try:  
+        client = openai.AzureOpenAI(  
+            azure_endpoint=AZURE_OPENAI_ENDPOINT,  
+            api_key=OPENAI_API_KEY,  
+            api_version=AZURE_OPENAI_API_VERSION  
+        )  
+          
+        response = client.moderations.create(input=content)  
+        moderation_result = response['results'][0]  
+        logging.debug(f"Moderation result: {moderation_result}")  
+  
+        return moderation_result  
+    except Exception as e:  
+        logging.error(f"Error during content moderation: {e}")  
+        return None  
 
 
 

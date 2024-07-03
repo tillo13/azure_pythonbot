@@ -1,14 +1,13 @@
 # person_search_utils.py  
-  
 import requests  
 from bs4 import BeautifulSoup  
 import re  
-import openai  
 import os  
 from dotenv import load_dotenv  
 import json  
 import tiktoken  
 import logging  
+from openai_utils import moderate_content, openai, AZURE_OPENAI_ENDPOINT, OPENAI_API_KEY, AZURE_OPENAI_API_VERSION  # Import the necessary variables and functions  
   
 # Load environment variables from .env file  
 load_dotenv()  
@@ -25,12 +24,6 @@ CATEGORY_THRESHOLDS = {key: 0.01 for key in [
     'hate/threatening', 'violence/graphic', 'self-harm/intent',  
     'self-harm/instructions', 'harassment/threatening', 'violence'  
 ]}  
-  
-# OpenAI API Configuration  
-OPENAI_API_KEY = os.getenv('APPSETTING_2024may22_GPT4o_API_KEY')  
-AZURE_OPENAI_ENDPOINT = os.getenv("APPSETTING_AZURE_OPENAI_ENDPOINT")  
-AZURE_OPENAI_API_VERSION = os.getenv("APPSETTING_AZURE_OPENAI_API_VERSION")  
-openai.api_key = OPENAI_API_KEY  
   
 # Logging configuration  
 logging.basicConfig(level=logging.DEBUG)  
@@ -51,30 +44,13 @@ def google_search(query):
             title, link = title_element.text, link_element['href']  
             domain = re.search(r"https?://(www\.)?([^/]+)", link).group(2)  
             try:  
-                scores, safe = ({}, True) if domain in WHITELISTED_DOMAINS else is_content_safe(title)  
+                scores, safe = ({}, True) if domain in WHITELISTED_DOMAINS else moderate_content(title)  
             except Exception as e:  
                 logging.error(f"Error during content moderation: {e}")  
                 scores, safe = {}, True  
             if safe:  
                 results.append({'title': title, 'link': link, 'domain': domain, 'content': None})  
     return results  
-  
-def is_content_safe(content):  
-    response = openai.Moderation.create(input=content)  
-    moderation_result = response['results'][0]  
-    categories = moderation_result['categories']  
-    category_scores = moderation_result['category_scores']  
-    flagged = moderation_result['flagged']  
-      
-    scores, safe = {}, not flagged  
-    for category, value in categories.items():  
-        score = category_scores[category]  
-        scores[category] = score  
-        threshold = CATEGORY_THRESHOLDS.get(category, 0.01)  
-        if value or score >= threshold:  
-            safe = False  
-      
-    return scores, safe  
   
 def extract_main_content(url):  
     headers = {'User-Agent': USER_AGENT}  
@@ -87,7 +63,7 @@ def extract_main_content(url):
     domain = re.search(r"https?://(www\.)?([^/]+)", url).group(2)  
     text_content = ' '.join([container.get_text().strip() for container in soup.find_all(['p', 'div', 'span'])]).strip()  
     try:  
-        if not text_content or len(text_content) < 300 or (domain not in WHITELISTED_DOMAINS and not is_content_safe(text_content)[1]):  
+        if not text_content or len(text_content) < 300 or (domain not in WHITELISTED_DOMAINS and not moderate_content(text_content)['flagged']):  
             return None  
     except Exception as e:  
         logging.error(f"Error during content moderation: {e}")  
@@ -118,16 +94,29 @@ async def search_person(query):
     valid_results = [result for result in combined_results if result['content']]  
     if not valid_results:  
         return "No valid results found for the given query."  
-  
+      
     identified_person_info = ""  
     for result in valid_results:  
         messages = [{"role": "system", "content": "You are a helpful assistant that identifies individuals based on web content."},  
                     {"role": "user", "content": f"Pieces of information about '{query}' identified: {json.dumps(result)[:1000]}"}]  
-        response = openai.ChatCompletion.create(model=GPT_MODEL, messages=messages)  
+        client = openai.AzureOpenAI(  
+            azure_endpoint=AZURE_OPENAI_ENDPOINT,  
+            api_key=OPENAI_API_KEY,  
+            api_version=AZURE_OPENAI_API_VERSION  
+        )  
+        response = client.chat.completions.create(  
+            model=GPT_MODEL,  
+            messages=messages,  
+            temperature=0.5,  
+            max_tokens=1000,  
+            top_p=0.95,  
+            frequency_penalty=0,  
+            presence_penalty=0  
+        )  
         if response and response.choices:  
             identified_person_info += response.choices[0].message['content']  
-  
+      
     if not identified_person_info:  
         return "Could not identify any relevant information for the given query."  
-  
+      
     return identified_person_info  
