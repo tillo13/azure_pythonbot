@@ -7,8 +7,8 @@ from dotenv import load_dotenv
 import json  
 import tiktoken  
 import logging  
-from .openai_utils import moderate_content, openai, AZURE_OPENAI_ENDPOINT, OPENAI_API_KEY, AZURE_OPENAI_API_VERSION, OPENAI_MODEL  # Import the necessary variables and functions  
-  
+from .openai_utils import moderate_content, openai, AZURE_OPENAI_ENDPOINT, OPENAI_API_KEY, AZURE_OPENAI_API_VERSION, OPENAI_MODEL  
+
 # Load environment variables from .env file  
 load_dotenv()  
   
@@ -107,65 +107,42 @@ def num_tokens(text):
     return len(tiktoken.encoding_for_model(GPT_MODEL).encode(text))  
   
 async def search_person(query):  
-    # Professional career (LinkedIn focus)  
-    linkedin_results = google_search_linkedin_posts(query)  
-    linkedin_results = linkedin_results[:MAX_NUMBER_OF_RESPONSE]  
-    for result in linkedin_results:  
+    combined_results = google_search_linkedin_posts(query) + google_search(query)  
+      
+    # Limit the number of responses to MAX_NUMBER_OF_RESPONSE  
+    combined_results = combined_results[:MAX_NUMBER_OF_RESPONSE]  
+      
+    for result in combined_results:  
         content = extract_main_content(result['link'])  
         result['content'] = content  
-    valid_linkedin_results = [result for result in linkedin_results if result['content']]  
-      
-    if valid_linkedin_results:  
-        linkedin_text = ' '.join(json.dumps(result) for result in valid_linkedin_results)  
-        linkedin_messages = [{"role": "system", "content": "You are a helpful assistant that summarizes professional career events from web content."},  
-                             {"role": "user", "content": f"Summarize the following professional career information in less than 2500 characters: {linkedin_text[:1000]}"}]  
-        client = openai.AzureOpenAI(  
-            azure_endpoint=AZURE_OPENAI_ENDPOINT,  
-            api_key=OPENAI_API_KEY,  
-            api_version=AZURE_OPENAI_API_VERSION  
-        )  
-        linkedin_response = client.chat.completions.create(  
-            model=OPENAI_MODEL,  
-            messages=linkedin_messages,  
-            temperature=0.5,  
-            max_tokens=1000,  
-            top_p=0.95,  
-            frequency_penalty=0,  
-            presence_penalty=0  
-        )  
-        if linkedin_response and linkedin_response.choices:  
-            professional_summary = linkedin_response.choices[0].message.content  
-        else:  
-            professional_summary = "Could not generate a professional career summary for the given query."  
-    else:  
-        professional_summary = "No valid LinkedIn results found for the given query."  
+    valid_results = [result for result in combined_results if result['content']]  
+    if not valid_results:  
+        return "No valid results found for the given query."  
   
-    # Personal life (other websites focus)  
-    other_results = google_search(query)  
-    other_results = other_results[:MAX_NUMBER_OF_RESPONSE]  
-    for result in other_results:  
-        content = extract_main_content(result['link'])  
-        result['content'] = content  
-    valid_other_results = [result for result in other_results if result['content']]  
+    all_results_text = ' '.join(json.dumps(result) for result in valid_results)  
       
-    if valid_other_results:  
-        other_text = ' '.join(json.dumps(result) for result in valid_other_results)  
-        other_messages = [{"role": "system", "content": "You are a helpful assistant that summarizes personal life events from web content."},  
-                          {"role": "user", "content": f"Summarize the following personal life information in less than 2500 characters: {other_text[:1000]}"}]  
-        other_response = client.chat.completions.create(  
-            model=OPENAI_MODEL,  
-            messages=other_messages,  
-            temperature=0.5,  
-            max_tokens=1000,  
-            top_p=0.95,  
-            frequency_penalty=0,  
-            presence_penalty=0  
-        )  
-        if other_response and other_response.choices:  
-            personal_summary = other_response.choices[0].message.content  
-        else:  
-            personal_summary = "Could not generate a personal life summary for the given query."  
+    # Send all data in one request to OpenAI  
+    messages = [{"role": "system", "content": "You are a helpful assistant that summarizes career events of a user from a set of web content."},  
+                {"role": "user", "content": f"Summarize the following information in less than 3000 characters: {all_results_text[:1000]}"}]  
+      
+    client = openai.AzureOpenAI(  
+        azure_endpoint=AZURE_OPENAI_ENDPOINT,  
+        api_key=OPENAI_API_KEY,  
+        api_version=AZURE_OPENAI_API_VERSION  
+    )  
+    response = client.chat.completions.create(  
+        model=OPENAI_MODEL,  
+        messages=messages,  
+        temperature=0.5,  
+        max_tokens=2000,  
+        top_p=0.95,  
+        frequency_penalty=0,  
+        presence_penalty=0  
+    )  
+      
+    if response and response.choices:  
+        career_summary = response.choices[0].message.content  
     else:  
-        personal_summary = "No valid non-LinkedIn results found for the given query."  
-  
-    return professional_summary, personal_summary  
+        career_summary = "Could not generate a summary for the given query."  
+      
+    return career_summary  
