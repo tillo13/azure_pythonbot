@@ -1,4 +1,3 @@
-# person_search_utils.py  
 import requests  
 from bs4 import BeautifulSoup  
 import re  
@@ -8,7 +7,7 @@ import json
 import tiktoken  
 import logging  
 from .openai_utils import moderate_content, openai, AZURE_OPENAI_ENDPOINT, OPENAI_API_KEY, AZURE_OPENAI_API_VERSION, OPENAI_MODEL  
-
+  
 # Load environment variables from .env file  
 load_dotenv()  
   
@@ -42,7 +41,6 @@ LINKEDIN_FILTER_PHRASES = [
     "By clicking Continue to join sign in, you agree LinkedIn’s User Agreement, Privacy Policy, and Cookie Policy.",  
     "New to LinkedIn? Join now", "Agree & Join LinkedIn"  
 ]  
-
   
 def num_tokens(text):  
     return len(tiktoken.encoding_for_model(GPT_MODEL).encode(text))  
@@ -65,8 +63,8 @@ def google_search(query):
     if response.status_code != 200:  
         raise Exception(f'Failed to load page: {response.status_code}')  
       
-    # Log the full JSON payload of the response  
-    logging.debug(f"Full JSON response payload from Google search {url}: {json.dumps(response.json(), indent=2)}")  
+    # Log the full response text  
+    logging.debug(f"Full response payload from Google search {url}: {response.text}")  
       
     results = []  
     soup = BeautifulSoup(response.text, 'html.parser')  
@@ -86,12 +84,9 @@ def google_search(query):
             if safe:  
                 results.append({'title': title, 'link': link, 'domain': domain, 'content': None})  
     return results  
-
-
   
 def google_search_linkedin_posts(query):  
     return google_search(f'{query} site:linkedin.com')  
-
   
 def extract_main_content(url):  
     headers = {'User-Agent': USER_AGENT}  
@@ -99,8 +94,8 @@ def extract_main_content(url):
     if response.status_code != 200:  
         return None, None  
       
-    # Log the full JSON payload of the response  
-    logging.debug(f"Full JSON response payload from {url}: {json.dumps(response.json(), indent=2)}")  
+    # Log the full response text  
+    logging.debug(f"Full response payload from {url}: {response.text}")  
   
     soup = BeautifulSoup(response.text, 'html.parser')  
     for tag in soup(['script', 'style', 'footer', 'nav', '[class*="ad"]', 'header']):  
@@ -131,10 +126,6 @@ def extract_main_content(url):
       
     # Apply the filter_phrases function to clean the content  
     return filter_phrases(text_content), author  
-
-
-
-
   
 async def search_person(query):  
     combined_results = google_search_linkedin_posts(query) + google_search(query)  
