@@ -8,6 +8,18 @@ SLACK_CHAT_URL = "https://slack.com/api/chat.postMessage"
 SLACK_CONVERSATIONS_REPLIES_URL = "https://slack.com/api/conversations.replies"  
 SLACK_ADD_REACTION_URL = "https://slack.com/api/reactions.add"  
 SLACK_REMOVE_REACTION_URL = "https://slack.com/api/reactions.remove"  
+
+
+def get_user_id(activity):  
+    event_data = activity.channel_data.get("SlackMessage", {}).get("event", {})  
+    user_id = event_data.get("user")  
+    if user_id:  
+        logging.debug(f"User ID: {user_id}")  
+        return user_id  
+    else:  
+        logging.error("User ID is None, cannot proceed.")  
+        return None  
+
   
 def convert_openai_response_to_slack_mrkdwn(text):  
     #logging.debug(f"Original text: {text}")  
@@ -96,6 +108,9 @@ def convert_jira_response_to_slack_mrkdwn(issue_details):
     )  
   
     return response_message  
+
+  
+
 
   
 def create_slack_message(main_message: str, footer: str, is_jira_response: bool = False) -> dict:  
