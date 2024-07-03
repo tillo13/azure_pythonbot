@@ -55,6 +55,12 @@ def clean_linkedin_content(content):
         content = content.replace(phrase, '')  
     return re.sub(r'(\s)+', ' ', content).strip()  
   
+def clean_html_content(html_content):  
+    soup = BeautifulSoup(html_content, 'html.parser')  
+    for tag in soup(['style', 'script', 'head', 'title', 'meta', '[document]']):  
+        tag.decompose()  
+    return ' '.join(soup.stripped_strings)  
+  
 def google_search(query):  
     query = query.replace(' ', '+')  
     headers = {'User-Agent': USER_AGENT}  
@@ -63,8 +69,11 @@ def google_search(query):
     if response.status_code != 200:  
         raise Exception(f'Failed to load page: {response.status_code}')  
   
-    # Log the full response text  
-    logging.debug(f"Full response payload from Google search {url}: {response.text}")  
+    # Clean the response text to remove unnecessary HTML and CSS  
+    cleaned_response_text = clean_html_content(response.text)  
+  
+    # Log the cleaned response text  
+    logging.debug(f"Cleaned response payload from Google search {url}: {cleaned_response_text}")  
   
     results = []  
     soup = BeautifulSoup(response.text, 'html.parser')  
@@ -94,8 +103,11 @@ def extract_main_content(url):
     if response.status_code != 200:  
         return None, None  
   
-    # Log the full response text  
-    logging.debug(f"Full response payload from {url}: {response.text}")  
+    # Clean the response text to remove unnecessary HTML and CSS  
+    cleaned_response_text = clean_html_content(response.text)  
+  
+    # Log the cleaned response text  
+    logging.debug(f"Cleaned response payload from {url}: {cleaned_response_text}")  
   
     soup = BeautifulSoup(response.text, 'html.parser')  
     for tag in soup(['script', 'style', 'footer', 'nav', '[class*="ad"]', 'header']):  

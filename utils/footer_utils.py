@@ -1,7 +1,7 @@
 import logging  
 from .openai_utils import calculate_cost  # Use relative import  
   
-APP_VERSION = "1.0703.1625"  
+APP_VERSION = "1.0703.1628"  
   
 def generate_footer(platform: str, response_time: float, model_name: str = "placeholder_model", input_tokens: int = 0, output_tokens: int = 0) -> str:  
     """Generates a footer string with application version, OpenAI model information, cost, and response time.  
