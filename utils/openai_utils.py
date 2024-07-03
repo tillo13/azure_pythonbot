@@ -132,7 +132,7 @@ def get_openai_response(user_message, chat_history=None, source=None):
             if source:  
                 completion_response['source'] = source  
             logging.debug("Exiting get_openai_response function")  
-            return response_message, model_name  # Return the response message and model name  
+            return {"choices": [{"message": {"content": response_message}}]}, model_name  # Return the response message and model name  
         else:  
             return {"error": "No choices in response."}, 'gpt4o'  
   
@@ -144,6 +144,7 @@ def get_openai_response(user_message, chat_history=None, source=None):
 
 
 
+
 def moderate_content(content):  
     logging.debug("Entered moderate_content function")  
     try:  
@@ -151,6 +152,7 @@ def moderate_content(content):
             azure_endpoint=AZURE_OPENAI_ENDPOINT,  
             api_key=OPENAI_API_KEY,  
             api_version=AZURE_OPENAI_API_VERSION  
+
         )  
         response = client.moderations.create(input=content)  
         if response is None:  
