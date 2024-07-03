@@ -88,12 +88,13 @@ def google_search(query):
 def google_search_linkedin_posts(query):  
     return google_search(f'{query} site:linkedin.com')  
   
+  
 def extract_main_content(url):  
     headers = {'User-Agent': USER_AGENT}  
     response = requests.get(url, headers=headers)  
     if response.status_code != 200:  
         return None, None  
-      
+  
     # Log the full response text  
     logging.debug(f"Full response payload from {url}: {response.text}")  
   
@@ -109,6 +110,13 @@ def extract_main_content(url):
         if author_tag:  
             author = author_tag.get_text().strip()  
       
+    # Check if the content is a comment or a main post  
+    is_comment = False  
+    if 'linkedin.com' in url:  
+        comment_tag = soup.find('span', {'class': 'feed-shared-actor__description'})  
+        if comment_tag and 'commented' in comment_tag.get_text().strip().lower():  
+            is_comment = True  
+  
     text_content = (' '.join(  
         [container.get_text().strip() for container in soup.find_all(['p', 'div', 'span'])]  
     ) if 'linkedin.com' not in url else clean_linkedin_content(  
@@ -116,6 +124,10 @@ def extract_main_content(url):
       
     # Filter irrelevant content  
     if author and 'Andy Tillo' not in author:  
+        return None, None  
+  
+    # Return None for comments  
+    if is_comment:  
         return None, None  
       
     try:  
@@ -126,6 +138,7 @@ def extract_main_content(url):
       
     # Apply the filter_phrases function to clean the content  
     return filter_phrases(text_content), author  
+
   
 async def search_person(query):  
     combined_results = google_search_linkedin_posts(query) + google_search(query)  
