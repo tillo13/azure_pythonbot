@@ -63,8 +63,8 @@ def num_tokens_from_messages(messages, model="gpt-4"):
     return num_tokens  
   
 # Function to call OpenAI API for text messages  
-
 def get_openai_response(user_message, chat_history=None, source=None):  
+    logging.debug("Entered get_openai_response function")  
     try:  
         client = openai.AzureOpenAI(  
             azure_endpoint=AZURE_OPENAI_ENDPOINT,  
@@ -73,30 +73,16 @@ def get_openai_response(user_message, chat_history=None, source=None):
         )  
   
         messages = [{"role": "system", "content": SYSTEM_PROMPT_TEXT}]  
-  
         if chat_history:  
             messages.extend(chat_history)  
-  
-        # Ensure the user message is not duplicated  
+          
         if not chat_history or chat_history[-1]['content'] != user_message:  
             messages.append({"role": "user", "content": user_message})  
   
         input_token_count = num_tokens_from_messages(messages)  
         max_response_tokens = min(128000 - input_token_count, 4000)  # Default to 4000 if under the limit  
   
-        # Log the full JSON request  
-        # print("Full JSON request to OpenAI:")  
-        # print(json.dumps({  
-        #     "model": OPENAI_MODEL,  
-        #     "messages": messages,  
-        #     "temperature": 0.5,  
-        #     "max_tokens": max_response_tokens,  
-        #     "top_p": 0.95,  
-        #     "frequency_penalty": 0,  
-        #     "presence_penalty": 0,  
-        #     "stop": None  
-        # }, indent=2))  
-  
+        logging.debug("Sending completion request to OpenAI")  
         completion = client.chat.completions.create(  
             model=OPENAI_MODEL,  
             messages=messages,  
@@ -110,20 +96,22 @@ def get_openai_response(user_message, chat_history=None, source=None):
         completion_response = completion.dict()  
   
         # Log the full JSON response  
-        print("Full JSON response from OpenAI:")  
-        print(json.dumps(completion_response, indent=2))  
+        logging.debug("Full JSON response from OpenAI:")  
+        logging.debug(json.dumps(completion_response, indent=2))  
   
-        # Add anything here needed to the response content  
         if 'choices' in completion_response and len(completion_response['choices']) > 0:  
-            completion_response['choices'][0]['message']['content']
-            if source:  
-                completion_response['source'] = source  
-            return completion_response  # Return the full response object  
+            completion_response['choices'][0]['message']['content']  
+  
+        if source:  
+            completion_response['source'] = source  
+        logging.debug("Exiting get_openai_response function")  
+        return completion_response  # Return the full response object  
     except Exception as e:  
         if 'content_filter' in str(e):  
             return {"error": "Your message triggered the content filter. Please modify your message and try again."}  
-        print(f"Error calling OpenAI API: {e}")  
+        logging.error(f"Error calling OpenAI API: {e}")  
         return {"error": f"Sorry, I couldn't process your request. Error: {e}"}  
+
 
 
   
