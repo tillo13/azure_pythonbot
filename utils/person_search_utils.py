@@ -91,17 +91,28 @@ def extract_main_content(url):
     for tag in soup(['script', 'style', 'footer', 'nav', '[class*="ad"]', 'header']):  
         tag.decompose()  
     domain = re.search(r"https?://(www\.)?([^/]+)", url).group(2)  
+      
+    # Identify and extract the author  
+    author = None  
+    if 'linkedin.com' in url:  
+        author_tag = soup.find('span', {'class': 'feed-shared-actor__name'})  
+        if author_tag:  
+            author = author_tag.get_text().strip()  
+      
     text_content = (' '.join(  
         [container.get_text().strip() for container in soup.find_all(['p', 'div', 'span'])]  
     ) if 'linkedin.com' not in url else clean_linkedin_content(  
         ' '.join([post.get_text().strip() for post in soup.find_all('p')]))).strip()  
+      
     try:  
         if not text_content or len(text_content) < 300 or (domain not in WHITELISTED_DOMAINS and not moderate_content(text_content)['flagged']):  
             return None  
     except Exception as e:  
         logging.error(f"Error during content moderation: {e}")  
+      
     # Apply the filter_phrases function to clean the content  
-    return filter_phrases(text_content)  
+    return filter_phrases(text_content), author  
+
   
 def num_tokens(text):  
     return len(tiktoken.encoding_for_model(GPT_MODEL).encode(text))  
@@ -113,8 +124,9 @@ async def search_person(query):
     combined_results = combined_results[:MAX_NUMBER_OF_RESPONSE]  
   
     for result in combined_results:  
-        content = extract_main_content(result['link'])  
+        content, author = extract_main_content(result['link'])  
         result['content'] = content  
+        result['author'] = author  
   
     valid_results = [result for result in combined_results if result['content']]  
     if not valid_results:  
