@@ -7,8 +7,8 @@ from dotenv import load_dotenv
 import json  
 import tiktoken  
 import logging  
-from .openai_utils import moderate_content, openai, AZURE_OPENAI_ENDPOINT, OPENAI_API_KEY, AZURE_OPENAI_API_VERSION, OPENAI_MODEL  # Import the necessary variables and functions  
-  
+from .openai_utils import moderate_content, openai, AZURE_OPENAI_ENDPOINT, OPENAI_API_KEY, AZURE_OPENAI_API_VERSION, OPENAI_MODEL 
+
 # Load environment variables from .env file  
 load_dotenv()  
   
@@ -36,8 +36,19 @@ FILTER_PHRASES = [
     "New to LinkedIn? Join now", "Forgot password?", "Sign in", "or"  
 ]  
   
+LINKEDIN_FILTER_PHRASES = [  
+    "By clicking Continue to join or sign in, you agree to LinkedIn’s User Agreement, Privacy Policy, and Cookie Policy.",  
+    "By clicking Continue to join sign in, you agree LinkedIn’s User Agreement, Privacy Policy, and Cookie Policy.",  
+    "New to LinkedIn? Join now", "Agree & Join LinkedIn"  
+]  
+  
 def filter_phrases(content):  
     for phrase in FILTER_PHRASES:  
+        content = content.replace(phrase, '')  
+    return re.sub(r'(\s)+', ' ', content).strip()  
+  
+def clean_linkedin_content(content):  
+    for phrase in LINKEDIN_FILTER_PHRASES:  
         content = content.replace(phrase, '')  
     return re.sub(r'(\s)+', ' ', content).strip()  
   
@@ -67,6 +78,9 @@ def google_search(query):
                 results.append({'title': title, 'link': link, 'domain': domain, 'content': None})  
     return results  
   
+def google_search_linkedin_posts(query):  
+    return google_search(f'{query} site:linkedin.com')  
+  
 def extract_main_content(url):  
     headers = {'User-Agent': USER_AGENT}  
     response = requests.get(url, headers=headers)  
@@ -76,7 +90,10 @@ def extract_main_content(url):
     for tag in soup(['script', 'style', 'footer', 'nav', '[class*="ad"]', 'header']):  
         tag.decompose()  
     domain = re.search(r"https?://(www\.)?([^/]+)", url).group(2)  
-    text_content = ' '.join([container.get_text().strip() for container in soup.find_all(['p', 'div', 'span'])]).strip()  
+    text_content = (' '.join(  
+        [container.get_text().strip() for container in soup.find_all(['p', 'div', 'span'])]  
+    ) if 'linkedin.com' not in url else clean_linkedin_content(  
+        ' '.join([post.get_text().strip() for post in soup.find_all('p')]))).strip()  
     try:  
         if not text_content or len(text_content) < 300 or (domain not in WHITELISTED_DOMAINS and not moderate_content(text_content)['flagged']):  
             return None  
@@ -103,7 +120,7 @@ def chunk_text(text, max_chunk_size):
     return chunks  
   
 async def search_person(query):  
-    combined_results = google_search(query)  
+    combined_results = google_search_linkedin_posts(query) + google_search(query)  
     for result in combined_results:  
         content = extract_main_content(result['link'])  
         result['content'] = content  
