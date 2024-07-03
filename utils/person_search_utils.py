@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 import json  
 import tiktoken  
 import logging  
-from .openai_utils import moderate_content, openai, AZURE_OPENAI_ENDPOINT, OPENAI_API_KEY, AZURE_OPENAI_API_VERSION, OPENAI_MODEL 
+from .openai_utils import moderate_content, openai, AZURE_OPENAI_ENDPOINT, OPENAI_API_KEY, AZURE_OPENAI_API_VERSION, OPENAI_MODEL  
 
 # Load environment variables from .env file  
 load_dotenv()  
@@ -17,6 +17,7 @@ USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTM
 SEARCH_URL = 'https://www.google.com/search?q='  
 WHITELISTED_DOMAINS = ["linkedin.com", "twitter.com", "medium.com", "about.me", "facebook.com", "youtube.com"]  
 GPT_MODEL = "gpt-4-turbo"  
+MAX_NUMBER_OF_RESPONSE = 10  # Maximum number of articles to process  
   
 # CATEGORY_THRESHOLDS definition  
 CATEGORY_THRESHOLDS = {key: 0.01 for key in [  
@@ -105,22 +106,12 @@ def extract_main_content(url):
 def num_tokens(text):  
     return len(tiktoken.encoding_for_model(GPT_MODEL).encode(text))  
   
-def chunk_text(text, max_chunk_size):  
-    chunks, current_chunk, current_length = [], [], 0  
-    for word in text.split():  
-        word_length = num_tokens(word)  
-        if current_length + word_length + 1 > max_chunk_size:  
-            chunks.append(' '.join(current_chunk))  
-            current_chunk, current_length = [word], word_length + 1  
-        else:  
-            current_chunk.append(word)  
-            current_length += word_length + 1  
-    if current_chunk:  
-        chunks.append(' '.join(current_chunk))  
-    return chunks  
-  
 async def search_person(query):  
     combined_results = google_search_linkedin_posts(query) + google_search(query)  
+      
+    # Limit the number of responses to MAX_NUMBER_OF_RESPONSE  
+    combined_results = combined_results[:MAX_NUMBER_OF_RESPONSE]  
+      
     for result in combined_results:  
         content = extract_main_content(result['link'])  
         result['content'] = content  
@@ -128,28 +119,30 @@ async def search_person(query):
     if not valid_results:  
         return "No valid results found for the given query."  
   
-    identified_person_info = ""  
-    for result in valid_results:  
-        messages = [{"role": "system", "content": "You are a helpful assistant that identifies individuals based on web content."},  
-                    {"role": "user", "content": f"Pieces of information about '{query}' identified: {json.dumps(result)[:1000]}"}]  
-        client = openai.AzureOpenAI(  
-            azure_endpoint=AZURE_OPENAI_ENDPOINT,  
-            api_key=OPENAI_API_KEY,  
-            api_version=AZURE_OPENAI_API_VERSION  
-        )  
-        response = client.chat.completions.create(  
-            model=OPENAI_MODEL,  
-            messages=messages,  
-            temperature=0.5,  
-            max_tokens=1000,  
-            top_p=0.95,  
-            frequency_penalty=0,  
-            presence_penalty=0  
-        )  
-        if response and response.choices:  
-            identified_person_info += response.choices[0].message.content  
-  
-    if not identified_person_info:  
-        return "Could not identify any relevant information for the given query."  
-  
-    return identified_person_info  
+    all_results_text = ' '.join(json.dumps(result) for result in valid_results)  
+      
+    # Send all data in one request to OpenAI  
+    messages = [{"role": "system", "content": "You are a helpful assistant that summarizes career events from web content."},  
+                {"role": "user", "content": f"Summarize the following information in less than 2500 characters: {all_results_text[:1000]}"}]  
+      
+    client = openai.AzureOpenAI(  
+        azure_endpoint=AZURE_OPENAI_ENDPOINT,  
+        api_key=OPENAI_API_KEY,  
+        api_version=AZURE_OPENAI_API_VERSION  
+    )  
+    response = client.chat.completions.create(  
+        model=OPENAI_MODEL,  
+        messages=messages,  
+        temperature=0.5,  
+        max_tokens=1000,  
+        top_p=0.95,  
+        frequency_penalty=0,  
+        presence_penalty=0  
+    )  
+      
+    if response and response.choices:  
+        career_summary = response.choices[0].message.content  
+    else:  
+        career_summary = "Could not generate a summary for the given query."  
+      
+    return career_summary  
