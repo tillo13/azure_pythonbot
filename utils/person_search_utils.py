@@ -50,7 +50,11 @@ def google_search(query):
         if title_element and link_element:  
             title, link = title_element.text, link_element['href']  
             domain = re.search(r"https?://(www\.)?([^/]+)", link).group(2)  
-            scores, safe = ({}, True) if domain in WHITELISTED_DOMAINS else is_content_safe(title)  
+            try:  
+                scores, safe = ({}, True) if domain in WHITELISTED_DOMAINS else is_content_safe(title)  
+            except Exception as e:  
+                logging.error(f"Error during content moderation: {e}")  
+                scores, safe = {}, True  
             if safe:  
                 results.append({'title': title, 'link': link, 'domain': domain, 'content': None})  
     return results  
@@ -82,8 +86,11 @@ def extract_main_content(url):
         tag.decompose()  
     domain = re.search(r"https?://(www\.)?([^/]+)", url).group(2)  
     text_content = ' '.join([container.get_text().strip() for container in soup.find_all(['p', 'div', 'span'])]).strip()  
-    if not text_content or len(text_content) < 300 or (domain not in WHITELISTED_DOMAINS and not is_content_safe(text_content)[1]):  
-        return None  
+    try:  
+        if not text_content or len(text_content) < 300 or (domain not in WHITELISTED_DOMAINS and not is_content_safe(text_content)[1]):  
+            return None  
+    except Exception as e:  
+        logging.error(f"Error during content moderation: {e}")  
     return text_content  
   
 def num_tokens(text):  
