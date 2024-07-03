@@ -11,6 +11,11 @@ from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 import json  
 from docx import Document  
 import io  
+import logging
+
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')  
+
+
   
 # Load environment variables from .env file  
 load_dotenv()  
