@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 import json  
 import tiktoken  
 import logging  
-from openai_utils import moderate_content, openai, AZURE_OPENAI_ENDPOINT, OPENAI_API_KEY, AZURE_OPENAI_API_VERSION, OPENAI_MODEL  # Import the necessary variables and functions  
+from .openai_utils import moderate_content, openai, AZURE_OPENAI_ENDPOINT, OPENAI_API_KEY, AZURE_OPENAI_API_VERSION, OPENAI_MODEL  # Import the necessary variables and functions  
   
 # Load environment variables from .env file  
 load_dotenv()  
