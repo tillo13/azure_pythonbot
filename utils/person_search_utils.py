@@ -64,6 +64,10 @@ def google_search(query):
     response = requests.get(url, headers=headers)  
     if response.status_code != 200:  
         raise Exception(f'Failed to load page: {response.status_code}')  
+      
+    # Log the full JSON payload of the response  
+    logging.debug(f"Full JSON response payload from Google search {url}: {json.dumps(response.json(), indent=2)}")  
+      
     results = []  
     soup = BeautifulSoup(response.text, 'html.parser')  
     for item in soup.select('.tF2Cxc'):  
@@ -83,16 +87,21 @@ def google_search(query):
                 results.append({'title': title, 'link': link, 'domain': domain, 'content': None})  
     return results  
 
+
   
 def google_search_linkedin_posts(query):  
     return google_search(f'{query} site:linkedin.com')  
 
-
+  
 def extract_main_content(url):  
     headers = {'User-Agent': USER_AGENT}  
     response = requests.get(url, headers=headers)  
     if response.status_code != 200:  
         return None, None  
+      
+    # Log the full JSON payload of the response  
+    logging.debug(f"Full JSON response payload from {url}: {json.dumps(response.json(), indent=2)}")  
+  
     soup = BeautifulSoup(response.text, 'html.parser')  
     for tag in soup(['script', 'style', 'footer', 'nav', '[class*="ad"]', 'header']):  
         tag.decompose()  
@@ -122,6 +131,7 @@ def extract_main_content(url):
       
     # Apply the filter_phrases function to clean the content  
     return filter_phrases(text_content), author  
+
 
 
 
