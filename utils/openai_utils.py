@@ -100,7 +100,7 @@ def get_openai_response(user_message, chat_history=None, source=None):
         messages = [{"role": "system", "content": SYSTEM_PROMPT_TEXT}]  
         if chat_history:  
             messages.extend(chat_history)  
-          
+  
         if not chat_history or chat_history[-1]['content'] != user_message:  
             messages.append({"role": "user", "content": user_message})  
   
@@ -128,17 +128,20 @@ def get_openai_response(user_message, chat_history=None, source=None):
         model_name = completion_response.get('model', 'gpt4o')  
   
         if 'choices' in completion_response and len(completion_response['choices']) > 0:  
-            completion_response['choices'][0]['message']['content']  
+            response_message = completion_response['choices'][0]['message']['content']  
+            if source:  
+                completion_response['source'] = source  
+            logging.debug("Exiting get_openai_response function")  
+            return response_message, model_name  # Return the response message and model name  
+        else:  
+            return {"error": "No choices in response."}, 'gpt4o'  
   
-        if source:  
-            completion_response['source'] = source  
-        logging.debug("Exiting get_openai_response function")  
-        return completion_response, model_name  # Return the full response object and model name  
     except Exception as e:  
         if 'content_filter' in str(e):  
             return {"error": "Your message triggered the content filter. Please modify your message and try again."}, 'gpt4o'  
         logging.error(f"Error calling OpenAI API: {e}")  
         return {"error": f"Sorry, I couldn't process your request. Error: {e}"}, 'gpt4o'  
+
 
 
 def moderate_content(content):  
@@ -149,16 +152,17 @@ def moderate_content(content):
             api_key=OPENAI_API_KEY,  
             api_version=AZURE_OPENAI_API_VERSION  
         )  
-          
         response = client.moderations.create(input=content)  
+        if response is None:  
+            logging.error("Received None response from moderation API")  
+            return None  
         moderation_result = response['results'][0]  
         logging.debug(f"Moderation result: {moderation_result}")  
-  
         return moderation_result  
     except Exception as e:  
         logging.error(f"Error during content moderation: {e}")  
-        print(f"Content moderation error: {e}")  # Print the error to the console  
         return None  
+
 
 
 

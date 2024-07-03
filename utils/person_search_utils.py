@@ -116,7 +116,7 @@ async def search_person(query):
             presence_penalty=0  
         )  
         if response and response.choices:  
-            identified_person_info += response.choices[0].message['content']  
+            identified_person_info += response.choices[0].message.content  
       
     if not identified_person_info:  
         return "Could not identify any relevant information for the given query."  
