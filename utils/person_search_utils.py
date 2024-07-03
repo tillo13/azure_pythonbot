@@ -108,23 +108,24 @@ def num_tokens(text):
   
 async def search_person(query):  
     combined_results = google_search_linkedin_posts(query) + google_search(query)  
-      
+  
     # Limit the number of responses to MAX_NUMBER_OF_RESPONSE  
     combined_results = combined_results[:MAX_NUMBER_OF_RESPONSE]  
-      
+  
     for result in combined_results:  
         content = extract_main_content(result['link'])  
         result['content'] = content  
+  
     valid_results = [result for result in combined_results if result['content']]  
     if not valid_results:  
-        return "No valid results found for the given query."  
+        return "No valid results found for the given query.", "placeholder_model", 0, 0  
   
     all_results_text = ' '.join(json.dumps(result) for result in valid_results)  
-      
+  
     # Send all data in one request to OpenAI  
     messages = [{"role": "system", "content": "You are a helpful assistant that summarizes career events of a user from a set of web content."},  
-                {"role": "user", "content": f"Use up to 20 bullet points to describe this persons work history and abilities: {all_results_text[:1000]}"}]  
-      
+                {"role": "user", "content": f"Use up to 20 bullet points to describe this persons work history and abilities: {all_results_text[:5000]}"}]  
+  
     client = openai.AzureOpenAI(  
         azure_endpoint=AZURE_OPENAI_ENDPOINT,  
         api_key=OPENAI_API_KEY,  
@@ -139,10 +140,17 @@ async def search_person(query):
         frequency_penalty=0,  
         presence_penalty=0  
     )  
-      
+  
     if response and response.choices:  
         career_summary = response.choices[0].message.content  
+        model_name = response.model  
+        usage = response.usage  
+        input_tokens = usage['prompt_tokens']  
+        output_tokens = usage['completion_tokens']  
     else:  
         career_summary = "Could not generate a summary for the given query."  
-      
-    return career_summary  
+        model_name = "placeholder_model"  
+        input_tokens = 0  
+        output_tokens = 0  
+  
+    return career_summary, model_name, input_tokens, output_tokens  

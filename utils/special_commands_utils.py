@@ -61,12 +61,6 @@ def extract_thread_ts(activity):
   
 
 async def handle_special_commands(turn_context: TurnContext) -> bool:  
-    """Handle special commands starting with '$'.  
-    Args:  
-        turn_context (TurnContext): The context object for the turn.  
-    Returns:  
-        bool: True if a special command was handled, False otherwise.  
-    """  
     user_message = turn_context.activity.text.strip().lower()  # Convert to lowercase  
     platform = turn_context.activity.channel_id  # Get the platform (e.g., "slack", "webchat")  
     token = os.environ.get("APPSETTING_SLACK_TOKEN")  
@@ -132,9 +126,9 @@ async def handle_special_commands(turn_context: TurnContext) -> bool:
                 person_name = command_parts[1]  
                 start_time = time.time()  # Start timing the response  
                 try:  
-                    search_results = await search_person(person_name)  
+                    search_results, model_name, input_tokens, output_tokens = await search_person(person_name)  
                     response_time = time.time() - start_time  
-                    footer = generate_footer(platform, response_time)  
+                    footer = generate_footer(platform, response_time, model_name, input_tokens, output_tokens)  
                     # Create Slack message with the person search results  
                     slack_message = create_slack_message(search_results, footer)  
                     post_message_to_slack(token, channel_id, slack_message['blocks'][0]['text']['text'], thread_ts=thread_ts)  
