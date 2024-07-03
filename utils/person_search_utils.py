@@ -140,39 +140,58 @@ def extract_main_content(url, user_name):
     return filter_phrases(text_content), author  
   
 async def search_person(query):  
-    combined_results = google_search_linkedin_posts(query) + google_search(query)  
+    # Perform LinkedIn search  
+    linkedin_results = google_search_linkedin_posts(query)  
+      
+    # Perform non-LinkedIn search  
+    non_linkedin_query = f'{query} -site:linkedin.com'  
+    non_linkedin_results = google_search(non_linkedin_query)  
   
-    # Limit the number of responses to MAX_NUMBER_OF_RESPONSE  
-    combined_results = combined_results[:MAX_NUMBER_OF_RESPONSE]  
+    # Limit the number of responses to MAX_NUMBER_OF_RESPONSE for each search  
+    linkedin_results = linkedin_results[:MAX_NUMBER_OF_RESPONSE]  
+    non_linkedin_results = non_linkedin_results[:MAX_NUMBER_OF_RESPONSE]  
   
     user_name = query.split()[0]  # Assume the first word in the query is the user's name  
   
-    for result in combined_results:  
+    # Process LinkedIn results  
+    for result in linkedin_results:  
         content, author = extract_main_content(result['link'], user_name)  
         result['content'] = content  
         result['author'] = author  
   
-    valid_results = [result for result in combined_results if result['content']]  
-    if not valid_results:  
+    # Process non-LinkedIn results  
+    for result in non_linkedin_results:  
+        content, author = extract_main_content(result['link'], user_name)  
+        result['content'] = content  
+        result['author'] = author  
+  
+    # Filter valid results  
+    valid_linkedin_results = [result for result in linkedin_results if result['content']]  
+    valid_non_linkedin_results = [result for result in non_linkedin_results if result['content']]  
+  
+    if not valid_linkedin_results and not valid_non_linkedin_results:  
         return "No valid results found for the given query.", "placeholder_model", 0, 0, []  
   
-    all_results_text = ' '.join(json.dumps(result) for result in valid_results)  
+    # Prepare the content for OpenAI  
+    linkedin_results_text = ' '.join(json.dumps(result) for result in valid_linkedin_results)  
+    non_linkedin_results_text = ' '.join(json.dumps(result) for result in valid_non_linkedin_results)  
   
     # Collect URLs  
-    urls = [result['link'] for result in valid_results]  
+    linkedin_urls = [result['link'] for result in valid_linkedin_results]  
+    non_linkedin_urls = [result['link'] for result in valid_non_linkedin_results]  
   
-    # Send all data in one request to OpenAI  
-    messages = [{"role": "system", "content": "You are a helpful assistant that summarizes career events of a user from a set of web content. Ensure the content is specifically about the person being searched and avoid making incorrect inferences."},  
-                {"role": "user", "content": f"Use up to 20 bullet points to describe this person's work history and abilities based on the provided content. Make sure to verify the context and avoid including irrelevant information: {all_results_text[:5000]}"}]  
+    # Send LinkedIn data in one request to OpenAI  
+    linkedin_messages = [{"role": "system", "content": "You are a helpful assistant that summarizes career events of a user from a set of web content. Ensure the content is specifically about the person being searched and avoid making incorrect inferences."},  
+                         {"role": "user", "content": f"Use up to 20 bullet points to describe this person's work history and abilities based on the provided LinkedIn content. Make sure to verify the context and avoid including irrelevant information: {linkedin_results_text[:5000]}"}]  
   
     client = openai.AzureOpenAI(  
         azure_endpoint=AZURE_OPENAI_ENDPOINT,  
         api_key=OPENAI_API_KEY,  
         api_version=AZURE_OPENAI_API_VERSION  
     )  
-    response = client.chat.completions.create(  
+    linkedin_response = client.chat.completions.create(  
         model=OPENAI_MODEL,  
-        messages=messages,  
+        messages=linkedin_messages,  
         temperature=0.5,  
         max_tokens=2000,  
         top_p=0.95,  
@@ -180,15 +199,41 @@ async def search_person(query):
         presence_penalty=0  
     )  
   
-    if response and response.choices:  
-        career_summary = response.choices[0].message.content  
-        model_name = response.model  
-        input_tokens = response.usage.prompt_tokens  
-        output_tokens = response.usage.completion_tokens  
+    if linkedin_response and linkedin_response.choices:  
+        linkedin_career_summary = linkedin_response.choices[0].message.content  
+        linkedin_model_name = linkedin_response.model  
+        linkedin_input_tokens = linkedin_response.usage.prompt_tokens  
+        linkedin_output_tokens = linkedin_response.usage.completion_tokens  
     else:  
-        career_summary = "Could not generate a summary for the given query."  
-        model_name = "placeholder_model"  
-        input_tokens = 0  
-        output_tokens = 0  
+        linkedin_career_summary = "Could not generate a summary for the given LinkedIn query."  
+        linkedin_model_name = "placeholder_model"  
+        linkedin_input_tokens = 0  
+        linkedin_output_tokens = 0  
   
-    return career_summary, model_name, input_tokens, output_tokens, urls  
+    # Send non-LinkedIn data in another request to OpenAI  
+    non_linkedin_messages = [{"role": "system", "content": "You are a helpful assistant that summarizes personal information of a user from a set of web content. Ensure the content is specifically about the person being searched and avoid making incorrect inferences."},  
+                             {"role": "user", "content": f"Use up to 20 bullet points to describe this person's personal information based on the provided non-LinkedIn content. Make sure to verify the context and avoid including irrelevant information: {non_linkedin_results_text[:5000]}"}]  
+  
+    non_linkedin_response = client.chat.completions.create(  
+        model=OPENAI_MODEL,  
+        messages=non_linkedin_messages,  
+        temperature=0.5,  
+        max_tokens=2000,  
+        top_p=0.95,  
+        frequency_penalty=0,  
+        presence_penalty=0  
+    )  
+  
+    if non_linkedin_response and non_linkedin_response.choices:  
+        non_linkedin_summary = non_linkedin_response.choices[0].message.content  
+        non_linkedin_model_name = non_linkedin_response.model  
+        non_linkedin_input_tokens = non_linkedin_response.usage.prompt_tokens  
+        non_linkedin_output_tokens = non_linkedin_response.usage.completion_tokens  
+    else:  
+        non_linkedin_summary = "Could not generate a summary for the given non-LinkedIn query."  
+        non_linkedin_model_name = "placeholder_model"  
+        non_linkedin_input_tokens = 0  
+        non_linkedin_output_tokens = 0  
+  
+    return (linkedin_career_summary, linkedin_model_name, linkedin_input_tokens, linkedin_output_tokens, linkedin_urls,  
+            non_linkedin_summary, non_linkedin_model_name, non_linkedin_input_tokens, non_linkedin_output_tokens, non_linkedin_urls)  
