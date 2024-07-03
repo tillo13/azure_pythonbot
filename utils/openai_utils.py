@@ -166,8 +166,8 @@ def get_openai_response(user_message, chat_history=None, source=None):
         completion_response = completion.model_dump()  # Use model_dump instead of dict  
 
         # Log the full JSON response  
-        # print("Full JSON response from OpenAI:")  
-        # print(json.dumps(completion_response, indent=2))  
+        print("Full JSON response from OpenAI:")  
+        print(json.dumps(completion_response, indent=2))  
 
         if 'choices' in completion_response and len(completion_response['choices']) > 0:  
             model_name = completion_response.get('model', OPENAI_MODEL)  # Extract model name  
