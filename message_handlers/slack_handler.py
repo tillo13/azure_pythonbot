@@ -92,37 +92,35 @@ async def handle_attachments(turn_context, attachments, thread_ts):
 
 
 
+import logging  
+  
 async def handle_slack_message(turn_context: TurnContext):  
     activity = turn_context.activity  
     try:  
         logging.debug(f"Payload passed from app.py via slack_handler.py (#uncomment slack_handler.py to show full payload)")  
-
         user_message = activity.text  
         logging.debug(f"Received message (#uncomment slack_handler.py to show full payload)")  
-
+  
         if await handle_special_commands(turn_context):  
             return  
-
+  
         channel_id = extract_channel_id(activity.conversation.id)  
         if not channel_id:  
             return  
-
         logging.debug(f"Extracted channel_id: {channel_id}")  
-
+  
         thread_ts = get_parent_thread_ts(activity)  
         if not thread_ts:  
             return  
-
         logging.debug(f"Using thread_ts for response: {thread_ts}")  
-
+  
         event_ts = get_event_ts(activity)  
         if not event_ts:  
             return  
-
         logging.debug(f"Using event_ts for reactions: {event_ts}")  
-
+  
         add_reaction(SLACK_TOKEN, channel_id, event_ts, "hourglass")  
-
+  
         user_id = get_user_id(activity)  
         if user_id:  
             user_mention = f"<@{user_id}>"  
@@ -134,19 +132,25 @@ async def handle_slack_message(turn_context: TurnContext):
                 logging.info(f"User {user_id} is not approved.")  
         else:  
             user_mention = "User"  
-
+  
         chat_history = fetch_conversation_history(SLACK_TOKEN, channel_id, thread_ts, activity.recipient.id)  
-
         if activity.attachments:  
             await handle_attachments(turn_context, activity.attachments, thread_ts)  
         else:  
             start_time = get_current_time()  
-            openai_response_data = get_openai_response(user_message, chat_history=chat_history, source="from_slack_handler")  
+            logging.debug("Calling get_openai_response")  
+            openai_response_data, model_name = get_openai_response(user_message, chat_history=chat_history, source="from_slack_handler")  
+            logging.debug("Returned from get_openai_response")  
+  
+            # Log the full JSON response from OpenAI  
+            logging.debug("Full JSON response from OpenAI:")  
+            logging.debug(json.dumps(openai_response_data, indent=2))  
+  
             bot_response = openai_response_data['choices'][0]['message']['content']  
             logging.debug(f"OpenAI response: {bot_response}")  
-
+  
             # Add this line to extract the model name  
-            OPENAI_MODEL = 'gpt4o'
+            OPENAI_MODEL = 'gpt4o'  
             model_name = openai_response_data.get('model', OPENAI_MODEL)  # Extract model name  
   
             formatted_bot_response = convert_openai_response_to_slack_mrkdwn(bot_response)  
@@ -154,18 +158,16 @@ async def handle_slack_message(turn_context: TurnContext):
   
             # Update this line to pass the model name to the footer  
             footer = generate_footer("slack", response_time, model_name)  # Pass the model name to the footer  
-
+            logging.debug(f"Generated footer: {footer}")  
+  
             formatted_bot_response = convert_openai_response_to_slack_mrkdwn(bot_response)  
             response_time = calculate_elapsed_time(start_time)  
-
             logging.debug(f"Bot response: {formatted_bot_response}")  
-            logging.debug(f"Footer: {footer}")  
-
+  
             full_response = f"{user_mention} {formatted_bot_response}"  
             slack_message = create_slack_message(full_response, footer)  
-
             logging.debug(f"Slack message: {slack_message}")  
-
+  
             response_data_list = post_message_to_slack(  
                 token=SLACK_TOKEN,  
                 channel=channel_id,  
@@ -173,12 +175,11 @@ async def handle_slack_message(turn_context: TurnContext):
                 blocks=slack_message['blocks'],  
                 thread_ts=thread_ts  
             )  
-
             for response_data in response_data_list:  
                 if not response_data.get("ok"):  
                     await turn_context.send_activity(response_data.get("error", "An error occurred while posting the message to Slack."))  
                     break  
-
+  
         remove_reaction(SLACK_TOKEN, channel_id, event_ts, "hourglass")  
         add_reaction(SLACK_TOKEN, channel_id, event_ts, "white_check_mark")  
     except (KeyError, TypeError) as e:  

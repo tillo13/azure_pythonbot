@@ -63,6 +63,7 @@ def num_tokens_from_messages(messages, model="gpt-4"):
     return num_tokens  
   
 # Function to call OpenAI API for text messages  
+
 def get_openai_response(user_message, chat_history=None, source=None):  
     logging.debug("Entered get_openai_response function")  
     try:  
@@ -114,6 +115,7 @@ def get_openai_response(user_message, chat_history=None, source=None):
             return {"error": "Your message triggered the content filter. Please modify your message and try again."}, 'gpt4o'  
         logging.error(f"Error calling OpenAI API: {e}")  
         return {"error": f"Sorry, I couldn't process your request. Error: {e}"}, 'gpt4o'  
+
 
 
 
