@@ -1,5 +1,4 @@
 # person_search_utils.py  
-  
 import requests  
 from bs4 import BeautifulSoup  
 import re  
@@ -8,7 +7,7 @@ from dotenv import load_dotenv
 import json  
 import tiktoken  
 import logging  
-from .openai_utils import moderate_content, openai, AZURE_OPENAI_ENDPOINT, OPENAI_API_KEY, AZURE_OPENAI_API_VERSION, OPENAI_MODEL  
+from .openai_utils import moderate_content, openai, AZURE_OPENAI_ENDPOINT, OPENAI_API_KEY, AZURE_OPENAI_API_VERSION, OPENAI_MODEL  # Import the necessary variables and functions  
   
 # Load environment variables from .env file  
 load_dotenv()  
@@ -107,14 +106,15 @@ def extract_main_content(url):
 def num_tokens(text):  
     return len(tiktoken.encoding_for_model(GPT_MODEL).encode(text))  
   
-async def search_linkedin_person(query):  
+async def search_person(query):  
+    # Professional career (LinkedIn focus)  
     linkedin_results = google_search_linkedin_posts(query)  
     linkedin_results = linkedin_results[:MAX_NUMBER_OF_RESPONSE]  
     for result in linkedin_results:  
         content = extract_main_content(result['link'])  
         result['content'] = content  
     valid_linkedin_results = [result for result in linkedin_results if result['content']]  
-  
+      
     if valid_linkedin_results:  
         linkedin_text = ' '.join(json.dumps(result) for result in valid_linkedin_results)  
         linkedin_messages = [{"role": "system", "content": "You are a helpful assistant that summarizes professional career events from web content."},  
@@ -139,27 +139,19 @@ async def search_linkedin_person(query):
             professional_summary = "Could not generate a professional career summary for the given query."  
     else:  
         professional_summary = "No valid LinkedIn results found for the given query."  
-      
-    # Send professional summary to Slack  
-    send_to_slack(professional_summary, "professional_summary")  
   
-async def search_other_person(query):  
+    # Personal life (other websites focus)  
     other_results = google_search(query)  
     other_results = other_results[:MAX_NUMBER_OF_RESPONSE]  
     for result in other_results:  
         content = extract_main_content(result['link'])  
         result['content'] = content  
     valid_other_results = [result for result in other_results if result['content']]  
-  
+      
     if valid_other_results:  
         other_text = ' '.join(json.dumps(result) for result in valid_other_results)  
         other_messages = [{"role": "system", "content": "You are a helpful assistant that summarizes personal life events from web content."},  
                           {"role": "user", "content": f"Summarize the following personal life information in less than 2500 characters: {other_text[:1000]}"}]  
-        client = openai.AzureOpenAI(  
-            azure_endpoint=AZURE_OPENAI_ENDPOINT,  
-            api_key=OPENAI_API_KEY,  
-            api_version=AZURE_OPENAI_API_VERSION  
-        )  
         other_response = client.chat.completions.create(  
             model=OPENAI_MODEL,  
             messages=other_messages,  
@@ -175,16 +167,5 @@ async def search_other_person(query):
             personal_summary = "Could not generate a personal life summary for the given query."  
     else:  
         personal_summary = "No valid non-LinkedIn results found for the given query."  
-      
-    # Send personal summary to Slack  
-    send_to_slack(personal_summary, "personal_summary")  
   
-def send_to_slack(summary, thread_type):  
-    # Implement the logic to send the summary to Slack  
-    # Use the `thread_type` to distinguish between professional and personal summaries  
-    pass  
-  
-# Integrate the functions to maintain existing behavior  
-async def search_person(query):  
-    await search_linkedin_person(query)  
-    await search_other_person(query)  
+    return professional_summary, personal_summary  
