@@ -28,6 +28,19 @@ CATEGORY_THRESHOLDS = {key: 0.01 for key in [
 # Logging configuration  
 logging.basicConfig(level=logging.DEBUG)  
   
+# Define phrases to filter out  
+FILTER_PHRASES = [  
+    "Skip to main content", "Follow to get new release updates",  
+    "Get to Know Us", "Make Money with Us", "Amazon Payment Products",  
+    "Let Us Help You", "Sign in to view", "Sign in", "By clicking Continue to join or sign in",  
+    "New to LinkedIn? Join now", "Forgot password?", "Sign in", "or"  
+]  
+  
+def filter_phrases(content):  
+    for phrase in FILTER_PHRASES:  
+        content = content.replace(phrase, '')  
+    return re.sub(r'(\s)+', ' ', content).strip()  
+  
 def google_search(query):  
     query = query.replace(' ', '+')  
     headers = {'User-Agent': USER_AGENT}  
@@ -69,7 +82,8 @@ def extract_main_content(url):
             return None  
     except Exception as e:  
         logging.error(f"Error during content moderation: {e}")  
-    return text_content  
+    # Apply the filter_phrases function to clean the content  
+    return filter_phrases(text_content)  
   
 def num_tokens(text):  
     return len(tiktoken.encoding_for_model(GPT_MODEL).encode(text))  
@@ -96,7 +110,7 @@ async def search_person(query):
     valid_results = [result for result in combined_results if result['content']]  
     if not valid_results:  
         return "No valid results found for the given query."  
-      
+  
     identified_person_info = ""  
     for result in valid_results:  
         messages = [{"role": "system", "content": "You are a helpful assistant that identifies individuals based on web content."},  
@@ -117,8 +131,8 @@ async def search_person(query):
         )  
         if response and response.choices:  
             identified_person_info += response.choices[0].message.content  
-      
+  
     if not identified_person_info:  
         return "Could not identify any relevant information for the given query."  
-      
+  
     return identified_person_info  
