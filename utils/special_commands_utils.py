@@ -142,7 +142,7 @@ async def handle_special_commands(turn_context: TurnContext) -> bool:
                     post_message_to_slack(token, channel_id, invalid_key_text, thread_ts=thread_ts)  
 
 
-            elif command == "search_person" and len(command_parts) > 1:  
+            elif command == "person" and len(command_parts) > 1:  
                 person_name = command_parts[1]  
                 start_time = time.time()  # Start timing the response  
                 try:  

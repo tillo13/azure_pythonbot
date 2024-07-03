@@ -123,7 +123,7 @@ async def search_person(query):
       
     # Send all data in one request to OpenAI  
     messages = [{"role": "system", "content": "You are a helpful assistant that summarizes career events of a user from a set of web content."},  
-                {"role": "user", "content": f"Summarize the following information in less than 3000 characters: {all_results_text[:1000]}"}]  
+                {"role": "user", "content": f"Use up to 20 bullet points to describe this persons work history and abilities: {all_results_text[:1000]}"}]  
       
     client = openai.AzureOpenAI(  
         azure_endpoint=AZURE_OPENAI_ENDPOINT,  
