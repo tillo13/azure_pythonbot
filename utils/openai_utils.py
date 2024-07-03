@@ -44,7 +44,7 @@ BRIEF_SUMMARIZATION_PROMPT = "This text is relatively brief, but attempt to extr
 encoding = tiktoken.encoding_for_model("gpt-4")  
 
 
-# Pricing details  
+# Pricing details for openai as of 2024july3
 PRICING = {  
     "gpt-4o": {"input": 5.00, "output": 15.00},  
     "gpt-4o-2024-05-13": {"input": 5.00, "output": 15.00},  
