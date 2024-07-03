@@ -123,8 +123,8 @@ async def search_person(query):
     all_results_text = ' '.join(json.dumps(result) for result in valid_results)  
   
     # Send all data in one request to OpenAI  
-    messages = [{"role": "system", "content": "You are a helpful assistant that summarizes career events of a user from a set of web content."},  
-                {"role": "user", "content": f"Use up to 20 bullet points to describe this persons work history and abilities: {all_results_text[:5000]}"}]  
+    messages = [{"role": "system", "content": "You are a helpful assistant that summarizes career events of a user from a set of web content, but does not invent things or add incorrect statements."},  
+                {"role": "user", "content": f"Use up to 20 bullet points to describe this persons work history and abilities while not stating anything not provided: {all_results_text[:5000]}"}]  
   
     client = openai.AzureOpenAI(  
         azure_endpoint=AZURE_OPENAI_ENDPOINT,  
@@ -144,9 +144,8 @@ async def search_person(query):
     if response and response.choices:  
         career_summary = response.choices[0].message.content  
         model_name = response.model  
-        usage = response.usage  
-        input_tokens = usage['prompt_tokens']  
-        output_tokens = usage['completion_tokens']  
+        input_tokens = response.usage.prompt_tokens  
+        output_tokens = response.usage.completion_tokens  
     else:  
         career_summary = "Could not generate a summary for the given query."  
         model_name = "placeholder_model"  
