@@ -59,7 +59,6 @@ def extract_thread_ts(activity):
     """  
     return activity.channel_data.get('SlackMessage', {}).get('event', {}).get('thread_ts')  
   
-
 async def handle_special_commands(turn_context: TurnContext) -> bool:  
     user_message = turn_context.activity.text.strip().lower()  # Convert to lowercase  
     platform = turn_context.activity.channel_id  # Get the platform (e.g., "slack", "webchat")  
@@ -126,12 +125,16 @@ async def handle_special_commands(turn_context: TurnContext) -> bool:
                 person_name = command_parts[1]  
                 start_time = time.time()  # Start timing the response  
                 try:  
-                    search_results, model_name, input_tokens, output_tokens = await search_person(person_name)  
+                    search_results, model_name, input_tokens, output_tokens, urls = await search_person(person_name)  
                     response_time = time.time() - start_time  
                     footer = generate_footer(platform, response_time, model_name, input_tokens, output_tokens)  
                     # Create Slack message with the person search results  
                     slack_message = create_slack_message(search_results, footer)  
                     post_message_to_slack(token, channel_id, slack_message['blocks'][0]['text']['text'], thread_ts=thread_ts)  
+                      
+                    # Send URLs in a second message  
+                    urls_message = "Here are the URLs we used to deduce this information:\n" + "\n".join(urls)  
+                    post_message_to_slack(token, channel_id, urls_message, thread_ts=thread_ts)  
                 except Exception as err:  
                     error_text = f"Error searching for person: {err}"  
                     post_message_to_slack(token, channel_id, error_text, thread_ts=thread_ts)  

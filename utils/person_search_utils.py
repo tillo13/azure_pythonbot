@@ -118,13 +118,16 @@ async def search_person(query):
   
     valid_results = [result for result in combined_results if result['content']]  
     if not valid_results:  
-        return "No valid results found for the given query.", "placeholder_model", 0, 0  
+        return "No valid results found for the given query.", "placeholder_model", 0, 0, []  
   
     all_results_text = ' '.join(json.dumps(result) for result in valid_results)  
   
+    # Collect URLs  
+    urls = [result['link'] for result in valid_results]  
+  
     # Send all data in one request to OpenAI  
-    messages = [{"role": "system", "content": "You are a helpful assistant that summarizes career events of a user from a set of web content, but does not invent things or add incorrect statements."},  
-                {"role": "user", "content": f"Use up to 20 bullet points to describe this persons work history and abilities while not stating anything not provided: {all_results_text[:5000]}"}]  
+    messages = [{"role": "system", "content": "You are a helpful assistant that summarizes career events of a user from a set of web content."},  
+                {"role": "user", "content": f"Use up to 20 bullet points to describe this persons work history and abilities: {all_results_text[:5000]}"}]  
   
     client = openai.AzureOpenAI(  
         azure_endpoint=AZURE_OPENAI_ENDPOINT,  
@@ -152,4 +155,4 @@ async def search_person(query):
         input_tokens = 0  
         output_tokens = 0  
   
-    return career_summary, model_name, input_tokens, output_tokens  
+    return career_summary, model_name, input_tokens, output_tokens, urls  
