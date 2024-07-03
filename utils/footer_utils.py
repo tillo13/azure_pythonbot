@@ -1,17 +1,18 @@
-# footer_utils.py  
 import logging  
 from .openai_utils import calculate_cost  # Use relative import  
   
-APP_VERSION = "1.0703.1004"  
+APP_VERSION = "1.0703.1016"  
   
-def generate_footer(platform: str, response_time: float, model_name: str, input_tokens: int, output_tokens: int) -> str:  
+def generate_footer(platform: str, response_time: float, model_name: str = "placeholder_model", input_tokens: int = 0, output_tokens: int = 0) -> str:  
     """Generates a footer string with application version, OpenAI model information, cost, and response time.  
+      
     Args:  
         platform (str): The platform for which the footer is being generated (e.g., "slack", "webchat").  
         response_time (float): The response time for the call.  
-        model_name (str): The name of the OpenAI model used.  
-        input_tokens (int): The number of input tokens used.  
-        output_tokens (int): The number of output tokens used.  
+        model_name (str, optional): The name of the OpenAI model used. Defaults to "placeholder_model".  
+        input_tokens (int, optional): The number of input tokens used. Defaults to 0.  
+        output_tokens (int, optional): The number of output tokens used. Defaults to 0.  
+          
     Returns:  
         str: The formatted footer string.  
     """  

@@ -89,8 +89,6 @@ async def handle_attachments(turn_context, attachments, thread_ts):
             await handle_pdf_attachment(turn_context, attachment, thread_ts)  
   
 
-import logging  
-  
 async def handle_slack_message(turn_context: TurnContext):  
     activity = turn_context.activity  
     try:  
@@ -176,17 +174,19 @@ async def handle_slack_message(turn_context: TurnContext):
   
         remove_reaction(SLACK_TOKEN, channel_id, event_ts, "hourglass")  
         add_reaction(SLACK_TOKEN, channel_id, event_ts, "white_check_mark")  
+  
     except (KeyError, TypeError) as e:  
         logging.error(f"Error processing OpenAI response: {e}")  
         await turn_context.send_activity(SLACK_MSG_ERROR)  
         await turn_context.send_activity(SLACK_MSG_FIX_BOT)  
         # Add a fallback footer with default values if needed  
-        footer = generate_footer("slack", 0, "unknown", 0, 0)  
+        footer = generate_footer("slack", 0)  
         await turn_context.send_activity(f"Footer: {footer}")  
+  
     except Exception as e:  
         logging.error(f"Error in handle_slack_message: {e}")  
         await turn_context.send_activity(SLACK_MSG_ERROR)  
         await turn_context.send_activity(SLACK_MSG_FIX_BOT)  
         # Add a fallback footer with default values if needed  
-        footer = generate_footer("slack", 0, "unknown", 0, 0)  
+        footer = generate_footer("slack", 0)  
         await turn_context.send_activity(f"Footer: {footer}")  
