@@ -42,6 +42,30 @@ BRIEF_SUMMARIZATION_PROMPT = "This text is relatively brief, but attempt to extr
   
 # Initialize Tiktoken encoder  
 encoding = tiktoken.encoding_for_model("gpt-4")  
+
+
+# Pricing details  
+PRICING = {  
+    "gpt-4o": {"input": 5.00, "output": 15.00},  
+    "gpt-4o-2024-05-13": {"input": 5.00, "output": 15.00},  
+    "gpt-3.5-turbo": {"input": 0.50, "output": 1.50},  
+    "gpt-3.5-turbo-0125": {"input": 0.50, "output": 1.50},  
+    # Add more models and pricing as needed  
+}  
+  
+def calculate_cost(model_name: str, input_tokens: int, output_tokens: int) -> float:  
+    """Calculate the estimated cost based on the model and token usage."""  
+    model_pricing = PRICING.get(model_name, PRICING["gpt-4o"])  # Default to "gpt-4o" if model not found  
+    input_cost_per_million = model_pricing["input"]  
+    output_cost_per_million = model_pricing["output"]  
+  
+    input_cost = (input_tokens / 1_000_000) * input_cost_per_million  
+    output_cost = (output_tokens / 1_000_000) * output_cost_per_million  
+    total_cost = input_cost + output_cost  
+  
+    logging.debug(f"Calculated cost for model {model_name}: input_cost={input_cost}, output_cost={output_cost}, total_cost={total_cost}")  
+    return total_cost  
+
   
 def num_tokens_from_string(string: str) -> int:  
     """Returns the number of tokens in a text string."""  
