@@ -97,7 +97,7 @@ def google_search(query):
 def google_search_linkedin_posts(query):  
     return google_search(f'{query} site:linkedin.com')  
   
-def extract_main_content(url):  
+def extract_main_content(url, user_name):  
     headers = {'User-Agent': USER_AGENT}  
     response = requests.get(url, headers=headers)  
     if response.status_code != 200:  
@@ -127,7 +127,7 @@ def extract_main_content(url):
         ' '.join([post.get_text().strip() for post in soup.find_all('p')]))).strip()  
   
     # Filter irrelevant content  
-    if author and 'Andy Tillo' not in author:  
+    if author and user_name not in author:  
         return None, None  
   
     try:  
@@ -145,8 +145,10 @@ async def search_person(query):
     # Limit the number of responses to MAX_NUMBER_OF_RESPONSE  
     combined_results = combined_results[:MAX_NUMBER_OF_RESPONSE]  
   
+    user_name = query.split()[0]  # Assume the first word in the query is the user's name  
+  
     for result in combined_results:  
-        content, author = extract_main_content(result['link'])  
+        content, author = extract_main_content(result['link'], user_name)  
         result['content'] = content  
         result['author'] = author  
   
