@@ -89,6 +89,7 @@ async def handle_attachments(turn_context, attachments, thread_ts):
             await handle_pdf_attachment(turn_context, attachment, thread_ts)  
   
 
+
 async def handle_slack_message(turn_context: TurnContext):  
     activity = turn_context.activity  
     try:  
@@ -96,6 +97,7 @@ async def handle_slack_message(turn_context: TurnContext):
         user_message = activity.text  
         logging.debug(f"Received message (#uncomment slack_handler.py to show full payload)")  
   
+        # Add this line to handle special commands  
         if await handle_special_commands(turn_context):  
             return  
   
@@ -115,7 +117,6 @@ async def handle_slack_message(turn_context: TurnContext):
         logging.debug(f"Using event_ts for reactions: {event_ts}")  
   
         add_reaction(SLACK_TOKEN, channel_id, event_ts, "hourglass")  
-  
         user_id = get_user_id(activity)  
         if user_id:  
             user_mention = f"<@{user_id}>"  

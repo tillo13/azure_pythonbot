@@ -14,3 +14,4 @@ gunicorn
 botbuilder-integration-aiohttp>=4.15.0
 pytz
 jira
+beautifulsoup4

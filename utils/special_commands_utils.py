@@ -8,8 +8,8 @@ from utils.footer_utils import generate_footer
 from utils.slack_utils import create_slack_message, get_last_5_messages, post_message_to_slack, add_reaction_to_message, remove_reaction_from_message
 import os  
 
+from .person_search_utils import search_person  
 
-#print the gpt4o value from the 
 
 SLACK_TOKEN = os.environ.get("APPSETTING_SLACK_TOKEN")  
   
@@ -140,6 +140,24 @@ async def handle_special_commands(turn_context: TurnContext) -> bool:
                 else:  
                     invalid_key_text = "Invalid JIRA issue key or URL."  
                     post_message_to_slack(token, channel_id, invalid_key_text, thread_ts=thread_ts)  
+
+
+            elif command == "search_person" and len(command_parts) > 1:  
+                person_name = command_parts[1]  
+                start_time = time.time()  # Start timing the response  
+                try:  
+                    search_results = await search_person(person_name)  
+                    response_time = time.time() - start_time  
+                    footer = generate_footer(platform, response_time)  
+                    # Create Slack message with the person search results  
+                    slack_message = create_slack_message(search_results, footer)  
+                    post_message_to_slack(token, channel_id, slack_message['blocks'][0]['text']['text'], thread_ts=thread_ts)  
+                except Exception as err:  
+                    error_text = f"Error searching for person: {err}"  
+                    post_message_to_slack(token, channel_id, error_text, thread_ts=thread_ts)  
+
+
+
             else:  
                 unknown_command_text = f"I don't understand that command: {command}"  
                 post_message_to_slack(token, channel_id, unknown_command_text, thread_ts=thread_ts)  
