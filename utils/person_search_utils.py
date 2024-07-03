@@ -42,6 +42,10 @@ LINKEDIN_FILTER_PHRASES = [
     "By clicking Continue to join sign in, you agree LinkedIn’s User Agreement, Privacy Policy, and Cookie Policy.",  
     "New to LinkedIn? Join now", "Agree & Join LinkedIn"  
 ]  
+
+  
+def num_tokens(text):  
+    return len(tiktoken.encoding_for_model(GPT_MODEL).encode(text))  
   
 def filter_phrases(content):  
     for phrase in FILTER_PHRASES:  
@@ -78,10 +82,12 @@ def google_search(query):
             if safe:  
                 results.append({'title': title, 'link': link, 'domain': domain, 'content': None})  
     return results  
+
   
 def google_search_linkedin_posts(query):  
     return google_search(f'{query} site:linkedin.com')  
-  
+
+
 def extract_main_content(url):  
     headers = {'User-Agent': USER_AGENT}  
     response = requests.get(url, headers=headers)  
@@ -104,6 +110,10 @@ def extract_main_content(url):
     ) if 'linkedin.com' not in url else clean_linkedin_content(  
         ' '.join([post.get_text().strip() for post in soup.find_all('p')]))).strip()  
       
+    # Filter irrelevant content  
+    if author and 'Andy Tillo' not in author:  
+        return None, None  
+      
     try:  
         if not text_content or len(text_content) < 300 or (domain not in WHITELISTED_DOMAINS and not moderate_content(text_content)['flagged']):  
             return None, author  
@@ -114,11 +124,8 @@ def extract_main_content(url):
     return filter_phrases(text_content), author  
 
 
-  
-def num_tokens(text):  
-    return len(tiktoken.encoding_for_model(GPT_MODEL).encode(text))  
-  
 
+  
 async def search_person(query):  
     combined_results = google_search_linkedin_posts(query) + google_search(query)  
   
@@ -140,8 +147,8 @@ async def search_person(query):
     urls = [result['link'] for result in valid_results]  
   
     # Send all data in one request to OpenAI  
-    messages = [{"role": "system", "content": "You are a helpful assistant that summarizes career events of a user from a set of web content."},  
-                {"role": "user", "content": f"Use up to 20 bullet points to describe this persons work history and abilities: {all_results_text[:5000]}"}]  
+    messages = [{"role": "system", "content": "You are a helpful assistant that summarizes career events of a user from a set of web content. Ensure the content is specifically about the person being searched and avoid making incorrect inferences."},  
+                {"role": "user", "content": f"Use up to 20 bullet points to describe this person's work history and abilities based on the provided content. Make sure to verify the context and avoid including irrelevant information: {all_results_text[:5000]}"}]  
   
     client = openai.AzureOpenAI(  
         azure_endpoint=AZURE_OPENAI_ENDPOINT,  
