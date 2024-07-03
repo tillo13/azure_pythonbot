@@ -143,6 +143,16 @@ async def handle_slack_message(turn_context: TurnContext):
             bot_response = openai_response_data['choices'][0]['message']['content']  
             logging.debug(f"OpenAI response: {bot_response}")  
 
+            # Add this line to extract the model name  
+            OPENAI_MODEL = 'gpt4o'
+            model_name = openai_response_data.get('model', OPENAI_MODEL)  # Extract model name  
+  
+            formatted_bot_response = convert_openai_response_to_slack_mrkdwn(bot_response)  
+            response_time = calculate_elapsed_time(start_time)  
+  
+            # Update this line to pass the model name to the footer  
+            footer = generate_footer("slack", response_time, model_name)  # Pass the model name to the footer  
+
             formatted_bot_response = convert_openai_response_to_slack_mrkdwn(bot_response)  
             response_time = calculate_elapsed_time(start_time)  
             footer = generate_footer("slack", response_time)  
