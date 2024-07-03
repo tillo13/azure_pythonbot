@@ -86,7 +86,7 @@ def extract_main_content(url):
     headers = {'User-Agent': USER_AGENT}  
     response = requests.get(url, headers=headers)  
     if response.status_code != 200:  
-        return None  
+        return None, None  
     soup = BeautifulSoup(response.text, 'html.parser')  
     for tag in soup(['script', 'style', 'footer', 'nav', '[class*="ad"]', 'header']):  
         tag.decompose()  
@@ -106,17 +106,19 @@ def extract_main_content(url):
       
     try:  
         if not text_content or len(text_content) < 300 or (domain not in WHITELISTED_DOMAINS and not moderate_content(text_content)['flagged']):  
-            return None  
+            return None, author  
     except Exception as e:  
         logging.error(f"Error during content moderation: {e}")  
       
     # Apply the filter_phrases function to clean the content  
     return filter_phrases(text_content), author  
 
+
   
 def num_tokens(text):  
     return len(tiktoken.encoding_for_model(GPT_MODEL).encode(text))  
   
+
 async def search_person(query):  
     combined_results = google_search_linkedin_posts(query) + google_search(query)  
   
