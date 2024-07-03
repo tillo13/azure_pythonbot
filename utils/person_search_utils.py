@@ -57,15 +57,20 @@ def google_search(query):
   
 def is_content_safe(content):  
     response = openai.Moderation.create(input=content)  
-    categories = response['results'][0]['categories']  
-    category_scores = response['results'][0]['category_scores']  
-    scores, flagged = {}, False  
+    moderation_result = response['results'][0]  
+    categories = moderation_result['categories']  
+    category_scores = moderation_result['category_scores']  
+    flagged = moderation_result['flagged']  
+      
+    scores, safe = {}, not flagged  
     for category, value in categories.items():  
         score = category_scores[category]  
-        scores[category], threshold = score, CATEGORY_THRESHOLDS.get(category, 0.01)  
+        scores[category] = score  
+        threshold = CATEGORY_THRESHOLDS.get(category, 0.01)  
         if value or score >= threshold:  
-            flagged = True  
-    return scores, not flagged  
+            safe = False  
+      
+    return scores, safe  
   
 def extract_main_content(url):  
     headers = {'User-Agent': USER_AGENT}  
