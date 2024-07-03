@@ -89,6 +89,8 @@ async def handle_attachments(turn_context, attachments, thread_ts):
             await handle_pdf_attachment(turn_context, attachment, thread_ts)  
   
 
+import logging  
+  
 async def handle_slack_message(turn_context: TurnContext):  
     activity = turn_context.activity  
     try:  
@@ -152,7 +154,7 @@ async def handle_slack_message(turn_context: TurnContext):
             formatted_bot_response = convert_openai_response_to_slack_mrkdwn(bot_response)  
             response_time = calculate_elapsed_time(start_time)  
   
-            # Update this line to pass the model name and token usage to the footer  
+            # Ensure this line passes all required arguments  
             footer = generate_footer("slack", response_time, model_name, input_tokens, output_tokens)  
             logging.debug(f"Generated footer: {footer}")  
   
@@ -178,7 +180,13 @@ async def handle_slack_message(turn_context: TurnContext):
         logging.error(f"Error processing OpenAI response: {e}")  
         await turn_context.send_activity(SLACK_MSG_ERROR)  
         await turn_context.send_activity(SLACK_MSG_FIX_BOT)  
+        # Add a fallback footer with default values if needed  
+        footer = generate_footer("slack", 0, "unknown", 0, 0)  
+        await turn_context.send_activity(f"Footer: {footer}")  
     except Exception as e:  
         logging.error(f"Error in handle_slack_message: {e}")  
         await turn_context.send_activity(SLACK_MSG_ERROR)  
         await turn_context.send_activity(SLACK_MSG_FIX_BOT)  
+        # Add a fallback footer with default values if needed  
+        footer = generate_footer("slack", 0, "unknown", 0, 0)  
+        await turn_context.send_activity(f"Footer: {footer}")  
