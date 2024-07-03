@@ -99,18 +99,22 @@ def get_openai_response(user_message, chat_history=None, source=None):
         logging.debug("Full JSON response from OpenAI:")  
         logging.debug(json.dumps(completion_response, indent=2))  
   
+        # Extract the model name  
+        model_name = completion_response.get('model', 'gpt4o')  
+  
         if 'choices' in completion_response and len(completion_response['choices']) > 0:  
             completion_response['choices'][0]['message']['content']  
   
         if source:  
             completion_response['source'] = source  
         logging.debug("Exiting get_openai_response function")  
-        return completion_response  # Return the full response object  
+        return completion_response, model_name  # Return the full response object and model name  
     except Exception as e:  
         if 'content_filter' in str(e):  
-            return {"error": "Your message triggered the content filter. Please modify your message and try again."}  
+            return {"error": "Your message triggered the content filter. Please modify your message and try again."}, 'gpt4o'  
         logging.error(f"Error calling OpenAI API: {e}")  
-        return {"error": f"Sorry, I couldn't process your request. Error: {e}"}  
+        return {"error": f"Sorry, I couldn't process your request. Error: {e}"}, 'gpt4o'  
+
 
 
 

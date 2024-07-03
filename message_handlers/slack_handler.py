@@ -90,6 +90,8 @@ async def handle_attachments(turn_context, attachments, thread_ts):
   
 
 
+
+
 async def handle_slack_message(turn_context: TurnContext):  
     activity = turn_context.activity  
     try:  
@@ -155,7 +157,7 @@ async def handle_slack_message(turn_context: TurnContext):
 
             formatted_bot_response = convert_openai_response_to_slack_mrkdwn(bot_response)  
             response_time = calculate_elapsed_time(start_time)  
-            footer = generate_footer("slack", response_time)  
+
             logging.debug(f"Bot response: {formatted_bot_response}")  
             logging.debug(f"Footer: {footer}")  
 
