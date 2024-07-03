@@ -157,6 +157,7 @@ def moderate_content(content):
         return moderation_result  
     except Exception as e:  
         logging.error(f"Error during content moderation: {e}")  
+        print(f"Content moderation error: {e}")  # Print the error to the console  
         return None  
 
 

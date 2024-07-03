@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 import json  
 import tiktoken  
 import logging  
-from .openai_utils import moderate_content, openai, AZURE_OPENAI_ENDPOINT, OPENAI_API_KEY, AZURE_OPENAI_API_VERSION  # Import the necessary variables and functions  
+from openai_utils import moderate_content, openai, AZURE_OPENAI_ENDPOINT, OPENAI_API_KEY, AZURE_OPENAI_API_VERSION, OPENAI_MODEL  # Import the necessary variables and functions  
   
 # Load environment variables from .env file  
 load_dotenv()  
@@ -45,6 +45,8 @@ def google_search(query):
             domain = re.search(r"https?://(www\.)?([^/]+)", link).group(2)  
             try:  
                 scores, safe = ({}, True) if domain in WHITELISTED_DOMAINS else moderate_content(title)  
+                if scores is None:  # Handle the case where moderate_content returns None  
+                    safe = True  # Default to safe if content moderation fails  
             except Exception as e:  
                 logging.error(f"Error during content moderation: {e}")  
                 scores, safe = {}, True  
@@ -105,7 +107,7 @@ async def search_person(query):
             api_version=AZURE_OPENAI_API_VERSION  
         )  
         response = client.chat.completions.create(  
-            model=GPT_MODEL,  
+            model=OPENAI_MODEL,  
             messages=messages,  
             temperature=0.5,  
             max_tokens=1000,  
