@@ -75,7 +75,6 @@ def google_search(query):
         if title_element and link_element:  
             title, link = title_element.text, link_element['href']  
             domain = re.search(r"https?://(www\.)?([^/]+)", link).group(2)  
-            # Skip content moderation for now  
             results.append({'title': title, 'link': link, 'domain': domain, 'content': None})  
     return results  
   
@@ -114,6 +113,28 @@ def extract_main_content(url, user_name):
         return None, None  
       
     return filter_phrases(text_content), author  
+  
+def calculate_likelihood_score(query, valid_results):  
+    score = 10  # Start with the minimum score  
+    max_score = 90  
+  
+    # Increase score based on the presence of "Teradata"  
+    for result in valid_results:  
+        if 'teradata' in result['title'].lower() or 'teradata' in result['content'].lower():  
+            score += 30  # High weight for Teradata presence  
+  
+    # Increase score based on author name match  
+    for result in valid_results:  
+        if result['author'] and query.split()[0].lower() in result['author'].lower():  
+            score += 20  # Medium weight for author name match  
+  
+    # Increase score based on the number of valid results  
+    score += len(valid_results) * 5  # Small weight for each valid result  
+  
+    # Normalize the score to be within 10 to 90  
+    score = min(max(score, 10), max_score)  
+  
+    return score  
   
 async def search_person(query):  
     linkedin_profile_results = google_search_linkedin_profile(query)[:MAX_NUMBER_OF_RESULTS_FROM_LINKEDIN]  
@@ -191,7 +212,11 @@ async def search_person(query):
         input_tokens = 0  
         output_tokens = 0  
   
+    # Calculate likelihood score  
+    likelihood_score = calculate_likelihood_score(query, valid_results)  
+  
     sources_list = "\n\nHere are some of the URLs we used to deduce this information:\n" + '\n'.join(urls)  
+    career_summary += f"\n\nEstimated Likelihood that this is the correct person: {likelihood_score}%"  
     career_summary += sources_list  
   
     return career_summary, model_name, input_tokens, output_tokens, urls  
