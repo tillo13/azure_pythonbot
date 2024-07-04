@@ -18,7 +18,6 @@ WHITELISTED_DOMAINS = ["linkedin.com", "twitter.com", "medium.com", "about.me", 
 GPT_MODEL = "gpt-4-turbo"  
 MAX_NUMBER_OF_RESULTS_FROM_LINKEDIN = 5  
 MAX_NUMBER_OF_RESULTS_IN_GENERAL = 5  
-TERADATA_KEYWORD = "Teradata"  
   
 # CATEGORY_THRESHOLDS definition  
 CATEGORY_THRESHOLDS = {key: 0.01 for key in [  
@@ -76,7 +75,7 @@ def google_search(query):
     cleaned_response_text = clean_html_content(response.text)  
   
     # Log the cleaned response text  
-    logger.debug(f"PERSON_SEARCH_UTILS.PY>>> Cleaned response payload from Google search {url}: {cleaned_response_text}")  
+    logger.debug(f"Cleaned response payload from Google search {url}: {cleaned_response_text}")  
   
     results = []  
     soup = BeautifulSoup(response.text, 'html.parser')  
@@ -91,7 +90,7 @@ def google_search(query):
                 if scores is None:  # Handle the case where moderate_content returns None  
                     safe = True  # Default to safe if content moderation fails  
             except Exception as e:  
-                logger.error(f"PERSON_SEARCH_UTILS.PY>>> Error during content moderation: {e}")  
+                logger.error(f"Error during content moderation: {e}")  
                 scores, safe = {}, True  
             if safe:  
                 results.append({'title': title, 'link': link, 'domain': domain, 'content': None})  
@@ -110,7 +109,7 @@ def extract_main_content(url, user_name):
     cleaned_response_text = clean_html_content(response.text)  
   
     # Log the cleaned response text  
-    logger.debug(f"PERSON_SEARCH_UTILS.PY>>> Cleaned response payload from {url}: {cleaned_response_text}")  
+    logger.debug(f"Cleaned response payload from {url}: {cleaned_response_text}")  
   
     soup = BeautifulSoup(response.text, 'html.parser')  
     for tag in soup(['script', 'style', 'footer', 'nav', '[class*="ad"]', 'header']):  
@@ -137,9 +136,9 @@ def extract_main_content(url, user_name):
         if not text_content or len(text_content) < 300 or (domain not in WHITELISTED_DOMAINS and not moderate_content(text_content)['flagged']):  
             return None, author  
     except Exception as e:  
-        logger.error(f"PERSON_SEARCH_UTILS.PY>>> Error during content moderation: {e}")  
+        logger.error(f"Error during content moderation: {e}")  
   
-    # Apply the filter_phrases function to clean the content.  
+    # Apply the filter_phrases function to clean the content  
     return filter_phrases(text_content), author  
   
 async def search_person(query):  
@@ -150,30 +149,14 @@ async def search_person(query):
   
     user_name = query.split()[0]  # Assume the first word in the query is the user's name  
   
-    # Focus on the first LinkedIn profile URL  
-    primary_linkedin_profile = None  
-    for result in linkedin_results:  
-        if 'linkedin.com' in result['domain']:  
-            primary_linkedin_profile = result['link']  
-            break  
-  
-    if not primary_linkedin_profile:  
-        return "Hm, sorry we couldn't find a LinkedIn profile for this person. Can you tell me more about the person?", "placeholder_model", 0, 0, []  
-  
-    primary_content, primary_author = extract_main_content(primary_linkedin_profile, user_name)  
-  
-    if not primary_content:  
-        return "Hm, sorry we couldn't extract valid content from the LinkedIn profile. Can you tell me more about the person?", "placeholder_model", 0, 0, []  
-  
-    # Filter other results based on the primary profile  
-    valid_results = [{'title': "LinkedIn Profile", 'link': primary_linkedin_profile, 'domain': 'linkedin.com', 'content': primary_content, 'author': primary_author}]  
     for result in combined_results:  
-        if result['link'] != primary_linkedin_profile:  
-            content, author = extract_main_content(result['link'], user_name)  
-            if content and author == primary_author:  
-                result['content'] = content  
-                result['author'] = author  
-                valid_results.append(result)  
+        content, author = extract_main_content(result['link'], user_name)  
+        result['content'] = content  
+        result['author'] = author  
+  
+    valid_results = [result for result in combined_results if result['content']]  
+    if not valid_results:  
+        return "No valid results found for the given query.", "placeholder_model", 0, 0, []  
   
     all_results_text = ' '.join(json.dumps(result) for result in valid_results)  
   
@@ -181,8 +164,8 @@ async def search_person(query):
     urls = [result['link'] for result in valid_results]  
   
     # Send all data in one request to OpenAI  
-    messages = [{"role": "system", "content": "You are a helpful assistant that summarizes career events of a user from a set of web content. Ensure the content is specifically about the person being searched and avoid making incorrect inferences. Do not mention the blurred face in the response."},  
-                {"role": "user", "content": f"Use up to 20 bullet points to describe this person's work history and abilities based on the provided content. Make sure to verify the context and avoid including irrelevant information. Only include positions if they are part of the primary LinkedIn profile: {all_results_text[:5000]}"}]  
+    messages = [{"role": "system", "content": "You are a helpful assistant that summarizes career events of a user from a set of web content. Ensure the content is specifically about the person being searched and avoid making incorrect inferences."},  
+                {"role": "user", "content": f"Use up to 20 bullet points to describe this person's work history and abilities based on the provided content. Make sure to verify the context and avoid including irrelevant information: {all_results_text[:5000]}"}]  
   
     client = openai.AzureOpenAI(  
         azure_endpoint=AZURE_OPENAI_ENDPOINT,  
