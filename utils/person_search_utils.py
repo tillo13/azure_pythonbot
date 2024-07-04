@@ -140,55 +140,120 @@ def extract_main_content(url, user_name):
     return filter_phrases(text_content), author  
   
 async def search_person(query):  
-    combined_results = google_search_linkedin_posts(query) + google_search(query)  
+    def create_openai_payload(results, context):  
+        all_results_text = ' '.join(json.dumps(result) for result in results)  
+        messages = [  
+            {"role": "system", "content": f"You are a helpful assistant that summarizes {context} events of a user from a set of web content. Ensure the content is specifically about the person being searched and avoid making incorrect inferences."},  
+            {"role": "user", "content": f"Use up to 20 bullet points to describe this person's {context} based on the provided content. Make sure to verify the context and avoid including irrelevant information: {all_results_text[:5000]}"}  
+        ]  
+        return messages  
   
-    # Limit the number of responses to MAX_NUMBER_OF_RESPONSE  
-    combined_results = combined_results[:MAX_NUMBER_OF_RESPONSE]  
+    def extract_valid_results(results, user_name):  
+        for result in results:  
+            content, author = extract_main_content(result['link'], user_name)  
+            result['content'] = content  
+            result['author'] = author  
+        return [result for result in results if result['content']]  
   
-    user_name = query.split()[0]  # Assume the first word in the query is the user's name  
+    def send_to_openai_and_return_summary(messages):  
+        client = openai.AzureOpenAI(  
+            azure_endpoint=AZURE_OPENAI_ENDPOINT,  
+            api_key=OPENAI_API_KEY,  
+            api_version=AZURE_OPENAI_API_VERSION  
+        )  
+        response = client.chat.completions.create(  
+            model=OPENAI_MODEL,  
+            messages=messages,  
+            temperature=0.5,  
+            max_tokens=2000,  
+            top_p=0.95,  
+            frequency_penalty=0,  
+            presence_penalty=0  
+        )  
   
-    for result in combined_results:  
-        content, author = extract_main_content(result['link'], user_name)  
-        result['content'] = content  
-        result['author'] = author  
+        if response and response.choices:  
+            career_summary = response.choices[0].message.content  
+            model_name = response.model  
+            input_tokens = response.usage.prompt_tokens  
+            output_tokens = response.usage.completion_tokens  
+        else:  
+            career_summary = "Could not generate a summary for the given query."  
+            model_name = "placeholder_model"  
+            input_tokens = 0  
+            output_tokens = 0  
+        return career_summary, model_name, input_tokens, output_tokens  
   
-    valid_results = [result for result in combined_results if result['content']]  
-    if not valid_results:  
+    # Perform first search including LinkedIn  
+    combined_results_professional = google_search_linkedin_posts(query) + google_search(query)  
+    combined_results_professional = combined_results_professional[:MAX_NUMBER_OF_RESPONSE]  
+    user_name = query.split()[0]  
+    valid_results_professional = extract_valid_results(combined_results_professional, user_name)  
+  
+    if not valid_results_professional:  
         return "No valid results found for the given query.", "placeholder_model", 0, 0, []  
   
-    all_results_text = ' '.join(json.dumps(result) for result in valid_results)  
+    messages_professional = create_openai_payload(valid_results_professional, "career")  
+    career_summary_professional, model_name_professional, input_tokens_professional, output_tokens_professional = send_to_openai_and_return_summary(messages_professional)  
   
-    # Collect URLs  
-    urls = [result['link'] for result in valid_results]  
+    # Post professional summary to Slack here  
+    return career_summary_professional, model_name_professional, input_tokens_professional, output_tokens_professional, [result['link'] for result in valid_results_professional]  
   
-    # Send all data in one request to OpenAI  
-    messages = [{"role": "system", "content": "You are a helpful assistant that summarizes career events of a user from a set of web content. Ensure the content is specifically about the person being searched and avoid making incorrect inferences."},  
-                {"role": "user", "content": f"Use up to 20 bullet points to describe this person's work history and abilities based on the provided content. Make sure to verify the context and avoid including irrelevant information: {all_results_text[:5000]}"}]  
+async def search_person_personal(query):  
+    def create_openai_payload(results, context):  
+        all_results_text = ' '.join(json.dumps(result) for result in results)  
+        messages = [  
+            {"role": "system", "content": f"You are a helpful assistant that summarizes {context} events of a user from a set of web content. Ensure the content is specifically about the person being searched and avoid making incorrect inferences."},  
+            {"role": "user", "content": f"Use up to 20 bullet points to describe this person's {context} based on the provided content. Make sure to verify the context and avoid including irrelevant information: {all_results_text[:5000]}"}  
+        ]  
+        return messages  
   
-    client = openai.AzureOpenAI(  
-        azure_endpoint=AZURE_OPENAI_ENDPOINT,  
-        api_key=OPENAI_API_KEY,  
-        api_version=AZURE_OPENAI_API_VERSION  
-    )  
-    response = client.chat.completions.create(  
-        model=OPENAI_MODEL,  
-        messages=messages,  
-        temperature=0.5,  
-        max_tokens=2000,  
-        top_p=0.95,  
-        frequency_penalty=0,  
-        presence_penalty=0  
-    )  
+    def extract_valid_results(results, user_name):  
+        for result in results:  
+            content, author = extract_main_content(result['link'], user_name)  
+            result['content'] = content  
+            result['author'] = author  
+        return [result for result in results if result['content']]  
   
-    if response and response.choices:  
-        career_summary = response.choices[0].message.content  
-        model_name = response.model  
-        input_tokens = response.usage.prompt_tokens  
-        output_tokens = response.usage.completion_tokens  
-    else:  
-        career_summary = "Could not generate a summary for the given query."  
-        model_name = "placeholder_model"  
-        input_tokens = 0  
-        output_tokens = 0  
+    def send_to_openai_and_return_summary(messages):  
+        client = openai.AzureOpenAI(  
+            azure_endpoint=AZURE_OPENAI_ENDPOINT,  
+            api_key=OPENAI_API_KEY,  
+            api_version=AZURE_OPENAI_API_VERSION  
+        )  
+        response = client.chat.completions.create(  
+            model=OPENAI_MODEL,  
+            messages=messages,  
+            temperature=0.5,  
+            max_tokens=2000,  
+            top_p=0.95,  
+            frequency_penalty=0,  
+            presence_penalty=0  
+        )  
   
-    return career_summary, model_name, input_tokens, output_tokens, urls  
+        if response and response.choices:  
+            career_summary = response.choices[0].message.content  
+            model_name = response.model  
+            input_tokens = response.usage.prompt_tokens  
+            output_tokens = response.usage.completion_tokens  
+        else:  
+            career_summary = "Could not generate a summary for the given query."  
+            model_name = "placeholder_model"  
+            input_tokens = 0  
+            output_tokens = 0  
+        return career_summary, model_name, input_tokens, output_tokens  
+  
+    # Perform second search excluding LinkedIn  
+    combined_results_personal = google_search(query)  
+    combined_results_personal = [result for result in combined_results_personal if 'linkedin.com' not in result['link']]  
+    combined_results_personal = combined_results_personal[:MAX_NUMBER_OF_RESPONSE]  
+    user_name = query.split()[0]  
+    valid_results_personal = extract_valid_results(combined_results_personal, user_name)  
+  
+    if not valid_results_personal:  
+        return "No valid results found for the given query.", "placeholder_model", 0, 0, []  
+  
+    messages_personal = create_openai_payload(valid_results_personal, "personal life")  
+    career_summary_personal, model_name_personal, input_tokens_personal, output_tokens_personal = send_to_openai_and_return_summary(messages_personal)  
+  
+    # Post personal summary to Slack here  
+    return career_summary_personal, model_name_personal, input_tokens_personal, output_tokens_personal, [result['link'] for result in valid_results_personal]  
