@@ -17,7 +17,6 @@ SEARCH_URL = 'https://www.google.com/search?q='
 WHITELISTED_DOMAINS = ["linkedin.com", "twitter.com", "medium.com", "about.me", "facebook.com", "youtube.com"]  
 GPT_MODEL = "gpt-4-turbo"  
 MAX_NUMBER_OF_RESPONSE = 10  # Maximum number of articles to process  
-TERADATA_KEYWORD = "Teradata"  
   
 # CATEGORY_THRESHOLDS definition  
 CATEGORY_THRESHOLDS = {key: 0.01 for key in [  
@@ -153,16 +152,9 @@ async def search_person(query):
         result['content'] = content  
         result['author'] = author  
   
-    # Filter out results that don't have content  
     valid_results = [result for result in combined_results if result['content']]  
-  
-    # Prioritize results containing "Teradata" if there are multiple valid results  
-    teradata_results = [result for result in valid_results if TERADATA_KEYWORD.lower() in result['content'].lower()]  
-    if teradata_results:  
-        valid_results = teradata_results  
-  
     if not valid_results:  
-        return "Hm, sorry we couldn't find any valid results here. Can you tell me more about the person?", "placeholder_model", 0, 0, []  
+        return "Hm, I cannot find any valid results found for that person.  Tell me more?", "placeholder_model", 0, 0, []  
   
     all_results_text = ' '.join(json.dumps(result) for result in valid_results)  
   
