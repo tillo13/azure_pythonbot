@@ -15,7 +15,7 @@ load_dotenv()
 USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'  
 SEARCH_URL = 'https://www.google.com/search?q='  
 WHITELISTED_DOMAINS = ["linkedin.com", "twitter.com", "medium.com", "about.me", "facebook.com", "youtube.com"]  
-GPT_MODEL = "gpt-4-turbo"  
+GPT_MODEL = "gpt4o"  
 MAX_NUMBER_OF_RESULTS_FROM_LINKEDIN = 5  
 MAX_NUMBER_OF_RESULTS_IN_GENERAL = 5  
   
@@ -188,7 +188,7 @@ async def search_person(query):
         model=OPENAI_MODEL,  
         messages=messages,  
         temperature=0.5,  
-        max_tokens=2000,  
+        max_tokens=4000,  
         top_p=0.95,  
         frequency_penalty=0,  
         presence_penalty=0  
@@ -206,7 +206,7 @@ async def search_person(query):
         output_tokens = 0  
   
     # Append the URLs used at the end of the response  
-    sources_list = "\n\nHere are the URLs we used to deduce this information:\n" + '\n'.join(urls)  
+    sources_list = "\n\nHere are some of the URLs we used to deduce this information:\n" + '\n'.join(urls)  
     career_summary += sources_list  
   
     return career_summary, model_name, input_tokens, output_tokens, urls  
