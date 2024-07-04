@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 import json  
 import tiktoken  
 import logging  
+from typing import List, Tuple, Dict, Any  
 from .openai_utils import moderate_content, openai, AZURE_OPENAI_ENDPOINT, OPENAI_API_KEY, AZURE_OPENAI_API_VERSION, OPENAI_MODEL  
   
 # Load environment variables from .env file  
@@ -16,7 +17,8 @@ USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTM
 SEARCH_URL = 'https://www.google.com/search?q='  
 WHITELISTED_DOMAINS = ["linkedin.com", "twitter.com", "medium.com", "about.me", "facebook.com", "youtube.com"]  
 GPT_MODEL = "gpt-4-turbo"  
-MAX_NUMBER_OF_RESPONSE = 10  # Maximum number of articles to process  
+MAX_NUMBER_OF_RESPONSES_PROFESSIONAL = 10  # Maximum number of professional articles to process  
+MAX_NUMBER_OF_RESPONSES_PERSONAL = 10  # Maximum number of personal articles to process  
   
 # CATEGORY_THRESHOLDS definition  
 CATEGORY_THRESHOLDS = {key: 0.01 for key in [  
@@ -139,23 +141,39 @@ def extract_main_content(url, user_name):
     # Apply the filter_phrases function to clean the content  
     return filter_phrases(text_content), author  
   
-async def search_person(query):  
-    def create_openai_payload(results, context):  
-        all_results_text = ' '.join(json.dumps(result) for result in results)  
-        messages = [  
-            {"role": "system", "content": f"You are a helpful assistant that summarizes {context} events of a user from a set of web content. Ensure the content is specifically about the person being searched and avoid making incorrect inferences."},  
-            {"role": "user", "content": f"Use up to 20 bullet points to describe this person's {context} based on the provided content. Make sure to verify the context and avoid including irrelevant information: {all_results_text[:5000]}"}  
+def google_search_non_linkedin(query: str) -> List[Dict[str, Any]]:  
+    results = google_search(query)  
+    non_linkedin_results = [result for result in results if 'linkedin.com' not in result['link']]  
+    return non_linkedin_results[:MAX_NUMBER_OF_RESPONSES_PERSONAL]  
+  
+async def search_person(query: str) -> Tuple[str, str, int, int, List[str], str, str, int, int, List[str]]:  
+    # Perform LinkedIn search  
+    linkedin_results = google_search_linkedin_posts(query)[:MAX_NUMBER_OF_RESPONSES_PROFESSIONAL]  
+      
+    user_name = query.split()[0]  # Assume the first word in the query is the user's name  
+      
+    for result in linkedin_results:  
+        content, author = extract_main_content(result['link'], user_name)  
+        result['content'] = content  
+        result['author'] = author  
+          
+    valid_linkedin_results = [result for result in linkedin_results if result['content']]  
+      
+    if not valid_linkedin_results:  
+        linkedin_summary = "No valid LinkedIn results found for the given query."  
+        linkedin_model_name = "placeholder_model"  
+        linkedin_input_tokens = 0  
+        linkedin_output_tokens = 0  
+        linkedin_urls = []  
+    else:  
+        linkedin_all_results_text = ' '.join(json.dumps(result) for result in valid_linkedin_results)  
+        linkedin_urls = [result['link'] for result in valid_linkedin_results]  
+          
+        linkedin_messages = [  
+            {"role": "system", "content": "You are a helpful assistant that summarizes career events of a user from a set of web content. Ensure the content is specifically about the person being searched and avoid making incorrect inferences."},  
+            {"role": "user", "content": f"Use up to 20 bullet points to describe this person's work history and abilities based on the provided content. Make sure to verify the context and avoid including irrelevant information: {linkedin_all_results_text[:5000]}"}  
         ]  
-        return messages  
-  
-    def extract_valid_results(results, user_name):  
-        for result in results:  
-            content, author = extract_main_content(result['link'], user_name)  
-            result['content'] = content  
-            result['author'] = author  
-        return [result for result in results if result['content']]  
-  
-    def send_to_openai_and_return_summary(messages):  
+          
         client = openai.AzureOpenAI(  
             azure_endpoint=AZURE_OPENAI_ENDPOINT,  
             api_key=OPENAI_API_KEY,  
@@ -163,69 +181,72 @@ async def search_person(query):
         )  
         response = client.chat.completions.create(  
             model=OPENAI_MODEL,  
-            messages=messages,  
+            messages=linkedin_messages,  
             temperature=0.5,  
             max_tokens=2000,  
             top_p=0.95,  
             frequency_penalty=0,  
             presence_penalty=0  
         )  
-  
+          
         if response and response.choices:  
-            summary = response.choices[0].message.content  
-            model_name = response.model  
-            input_tokens = response.usage.prompt_tokens  
-            output_tokens = response.usage.completion_tokens  
+            linkedin_summary = response.choices[0].message.content  
+            linkedin_model_name = response.model  
+            linkedin_input_tokens = response.usage.prompt_tokens  
+            linkedin_output_tokens = response.usage.completion_tokens  
         else:  
-            summary = "Could not generate a summary for the given query."  
-            model_name = "placeholder_model"  
-            input_tokens = 0  
-            output_tokens = 0  
-        return summary, model_name, input_tokens, output_tokens  
-  
-    # Perform first search including LinkedIn  
-    combined_results_professional = google_search_linkedin_posts(query) + google_search(query)  
-    combined_results_professional = combined_results_professional[:MAX_NUMBER_OF_RESPONSE]  
-    user_name = query.split()[0]  
-    valid_results_professional = extract_valid_results(combined_results_professional, user_name)  
-  
-    if not valid_results_professional:  
-        return "No valid results found for the given query.", "placeholder_model", 0, 0, []  
-  
-    messages_professional = create_openai_payload(valid_results_professional, "career")  
-    career_summary_professional, model_name_professional, input_tokens_professional, output_tokens_professional = send_to_openai_and_return_summary(messages_professional)  
-  
-    # Post professional summary to Slack  
-    print(f"Professional profile of {query}:\n{career_summary_professional}\n\nHere are the URLs we used to deduce this information:\n" + "\n".join([result['link'] for result in valid_results_professional]))  
-  
-    # Perform second search excluding LinkedIn  
-    combined_results_personal = google_search(query)  
-    combined_results_personal = [result for result in combined_results_personal if 'linkedin.com' not in result['link']]  
-    combined_results_personal = combined_results_personal[:MAX_NUMBER_OF_RESPONSE]  
-    valid_results_personal = extract_valid_results(combined_results_personal, user_name)  
-  
-    if not valid_results_personal:  
-        return "No valid results found for the given query.", "placeholder_model", 0, 0, []  
-  
-    messages_personal = create_openai_payload(valid_results_personal, "personal life")  
-    personal_summary, model_name_personal, input_tokens_personal, output_tokens_personal = send_to_openai_and_return_summary(messages_personal)  
-  
-    # Post personal summary to Slack  
-    print(f"Personal profile of {query}:\n{personal_summary}\n\nHere are the URLs we used to deduce this information:\n" + "\n".join([result['link'] for result in valid_results_personal]))  
-  
-    return {  
-        "professional": {  
-            "summary": career_summary_professional,  
-            "model_name": model_name_professional,  
-            "input_tokens": input_tokens_professional,  
-            "output_tokens": output_tokens_professional,  
-            "urls": [result['link'] for result in valid_results_professional]  
-        },  
-        "personal": {  
-            "summary": personal_summary,  
-            "model_name": model_name_personal,  
-            "input_tokens": input_tokens_personal,  
-            "output_tokens": output_tokens_personal,  
-            "urls": [result['link'] for result in valid_results_personal]  
-        }  
-    }  
+            linkedin_summary = "Could not generate a LinkedIn summary for the given query."  
+            linkedin_model_name = "placeholder_model"  
+            linkedin_input_tokens = 0  
+            linkedin_output_tokens = 0  
+      
+    # Perform non-LinkedIn search  
+    non_linkedin_results = google_search_non_linkedin(query)  
+      
+    for result in non_linkedin_results:  
+        content, author = extract_main_content(result['link'], user_name)  
+        result['content'] = content  
+        result['author'] = author  
+      
+    valid_non_linkedin_results = [result for result in non_linkedin_results if result['content']]  
+      
+    if not valid_non_linkedin_results:  
+        non_linkedin_summary = "No valid non-LinkedIn results found for the given query."  
+        non_linkedin_model_name = "placeholder_model"  
+        non_linkedin_input_tokens = 0  
+        non_linkedin_output_tokens = 0  
+        non_linkedin_urls = []  
+    else:  
+        non_linkedin_all_results_text = ' '.join(json.dumps(result) for result in valid_non_linkedin_results)  
+        non_linkedin_urls = [result['link'] for result in valid_non_linkedin_results]  
+          
+        non_linkedin_messages = [  
+            {"role": "system", "content": "You are a helpful assistant that summarizes personal events of a user from a set of web content. Ensure the content is specifically about the person being searched and avoid making incorrect inferences."},  
+            {"role": "user", "content": f"Use up to 20 bullet points to describe this person's personal events and abilities based on the provided content. Make sure to verify the context and avoid including irrelevant information: {non_linkedin_all_results_text[:5000]}"}  
+        ]  
+          
+        response = client.chat.completions.create(  
+            model=OPENAI_MODEL,  
+            messages=non_linkedin_messages,  
+            temperature=0.5,  
+            max_tokens=2000,  
+            top_p=0.95,  
+            frequency_penalty=0,  
+            presence_penalty=0  
+        )  
+          
+        if response and response.choices:  
+            non_linkedin_summary = response.choices[0].message.content  
+            non_linkedin_model_name = response.model  
+            non_linkedin_input_tokens = response.usage.prompt_tokens  
+            non_linkedin_output_tokens = response.usage.completion_tokens  
+        else:  
+            non_linkedin_summary = "Could not generate a non-LinkedIn summary for the given query."  
+            non_linkedin_model_name = "placeholder_model"  
+            non_linkedin_input_tokens = 0  
+            non_linkedin_output_tokens = 0  
+      
+    return (  
+        linkedin_summary, linkedin_model_name, linkedin_input_tokens, linkedin_output_tokens, linkedin_urls,  
+        non_linkedin_summary, non_linkedin_model_name, non_linkedin_input_tokens, non_linkedin_output_tokens, non_linkedin_urls  
+    )  
