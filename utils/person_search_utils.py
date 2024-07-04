@@ -216,7 +216,7 @@ async def search_person(query):
     likelihood_score = calculate_likelihood_score(query, valid_results)  
   
     sources_list = "\n\nHere are some of the URLs we used to deduce this information:\n" + '\n'.join(urls)  
-    career_summary += f"\n\nEstimated Likelihood that this is the correct person: {likelihood_score}%"  
     career_summary += sources_list  
+    career_summary += f"\n\n*Estimated Likelihood that this is the correct person:* `{likelihood_score}%`"  
   
     return career_summary, model_name, input_tokens, output_tokens, urls  
