@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 import json  
 import tiktoken  
 import logging  
-from .openai_utils import moderate_content, openai, AZURE_OPENAI_ENDPOINT, OPENAI_API_KEY, AZURE_OPENAI_API_VERSION, OPENAI_MODEL  
+from .openai_utils import openai, AZURE_OPENAI_ENDPOINT, OPENAI_API_KEY, AZURE_OPENAI_API_VERSION, OPENAI_MODEL  
   
 # Load environment variables from .env file  
 load_dotenv()  
@@ -18,13 +18,6 @@ WHITELISTED_DOMAINS = ["linkedin.com", "twitter.com", "medium.com", "about.me", 
 GPT_MODEL = "gpt-4-turbo"  
 MAX_NUMBER_OF_RESULTS_FROM_LINKEDIN = 5  
 MAX_NUMBER_OF_RESULTS_IN_GENERAL = 10  
-  
-# CATEGORY_THRESHOLDS definition  
-CATEGORY_THRESHOLDS = {key: 0.01 for key in [  
-    'sexual', 'hate', 'harassment', 'self-harm', 'sexual/minors',  
-    'hate/threatening', 'violence/graphic', 'self-harm/intent',  
-    'self-harm/instructions', 'harassment/threatening', 'violence'  
-]}  
   
 # Logging configuration  
 logging.basicConfig(level=logging.DEBUG)  
@@ -70,13 +63,10 @@ def google_search(query):
     response = requests.get(url, headers=headers)  
     if response.status_code != 200:  
         raise Exception(f'Failed to load page: {response.status_code}')  
-  
-    # Clean the response text to remove unnecessary HTML and CSS  
+      
     cleaned_response_text = clean_html_content(response.text)  
-  
-    # Log the cleaned response text  
     logger.debug(f"PERSON_SEARCH_UTILS.PY>>> Cleaned response payload from Google search {url}: {cleaned_response_text}")  
-  
+      
     results = []  
     soup = BeautifulSoup(response.text, 'html.parser')  
     for item in soup.select('.tF2Cxc'):  
@@ -85,15 +75,8 @@ def google_search(query):
         if title_element and link_element:  
             title, link = title_element.text, link_element['href']  
             domain = re.search(r"https?://(www\.)?([^/]+)", link).group(2)  
-            try:  
-                scores, safe = ({}, True) if domain in WHITELISTED_DOMAINS else moderate_content(title)  
-                if scores is None:  # Handle the case where moderate_content returns None  
-                    safe = True  # Default to safe if content moderation fails  
-            except Exception as e:  
-                logger.error(f"PERSON_SEARCH_UTILS.PY>>> Error during content moderation: {e}")  
-                scores, safe = {}, True  
-            if safe:  
-                results.append({'title': title, 'link': link, 'domain': domain, 'content': None})  
+            # Skip content moderation for now  
+            results.append({'title': title, 'link': link, 'domain': domain, 'content': None})  
     return results  
   
 def google_search_linkedin_posts(query):  
@@ -107,67 +90,70 @@ def extract_main_content(url, user_name):
     response = requests.get(url, headers=headers)  
     if response.status_code != 200:  
         return None, None  
-  
-    # Clean the response text to remove unnecessary HTML and CSS  
+      
     cleaned_response_text = clean_html_content(response.text)  
-  
-    # Log the cleaned response text  
     logger.debug(f"PERSON_SEARCH_UTILS.PY>>> Cleaned response payload from {url}: {cleaned_response_text}")  
-  
+      
     soup = BeautifulSoup(response.text, 'html.parser')  
     for tag in soup(['script', 'style', 'footer', 'nav', '[class*="ad"]', 'header']):  
         tag.decompose()  
     domain = re.search(r"https?://(www\.)?([^/]+)", url).group(2)  
-  
-    # Identify and extract the author  
+      
     author = None  
     if 'linkedin.com' in url:  
         author_tag = soup.find('span', {'class': 'feed-shared-actor__name'})  
         if author_tag:  
             author = author_tag.get_text().strip()  
-  
+      
     text_content = (' '.join(  
         [container.get_text().strip() for container in soup.find_all(['p', 'div', 'span'])]  
     ) if 'linkedin.com' not in url else clean_linkedin_content(  
         ' '.join([post.get_text().strip() for post in soup.find_all('p')]))).strip()  
-  
-    # Filter irrelevant content  
+      
     if author and user_name not in author:  
         return None, None  
-  
-    try:  
-        if not text_content or len(text_content) < 300 or (domain not in WHITELISTED_DOMAINS and not moderate_content(text_content)['flagged']):  
-            return None, author  
-    except Exception as e:  
-        logger.error(f"PERSON_SEARCH_UTILS.PY>>> Error during content moderation: {e}")  
-  
-    # Apply the filter_phrases function to clean the content  
+      
     return filter_phrases(text_content), author  
   
 async def search_person(query):  
     linkedin_profile_results = google_search_linkedin_profile(query)[:MAX_NUMBER_OF_RESULTS_FROM_LINKEDIN]  
     linkedin_post_results = google_search_linkedin_posts(query)[:MAX_NUMBER_OF_RESULTS_FROM_LINKEDIN]  
-    general_results = google_search(query)[:MAX_NUMBER_OF_RESULTS_IN_GENERAL]  # Get top 10 general results  
+    general_results = google_search(query)[:MAX_NUMBER_OF_RESULTS_IN_GENERAL]  
   
-    # Combine all results and keep the first 10 unique URLs  
     combined_results = linkedin_profile_results + linkedin_post_results + general_results  
-    combined_results = combined_results[:10]  # Limit to first 10 results  
+    combined_results = combined_results[:10]  
   
-    user_name = query.split()[0]  # Assume the first word in the query is the user's name  
+    user_name = query.split()[0]  
     for result in combined_results:  
         content, author = extract_main_content(result['link'], user_name)  
         result['content'] = content  
         result['author'] = author  
   
     valid_results = [result for result in combined_results if result['content']]  
+      
+    # Retry with "Teradata" filter if no valid results found  
     if not valid_results:  
-        return "No valid results found for the given query.", "placeholder_model", 0, 0, []  
+        teradata_query = f"{query} Teradata"  
+        linkedin_profile_results = google_search_linkedin_profile(teradata_query)[:MAX_NUMBER_OF_RESULTS_FROM_LINKEDIN]  
+        linkedin_post_results = google_search_linkedin_posts(teradata_query)[:MAX_NUMBER_OF_RESULTS_FROM_LINKEDIN]  
+        general_results = google_search(teradata_query)[:MAX_NUMBER_OF_RESULTS_IN_GENERAL]  
+  
+        combined_results = linkedin_profile_results + linkedin_post_results + general_results  
+        combined_results = combined_results[:10]  
+  
+        for result in combined_results:  
+            content, author = extract_main_content(result['link'], user_name)  
+            result['content'] = content  
+            result['author'] = author  
+  
+        valid_results = [result for result in combined_results if result['content']]  
+  
+    if not valid_results:  
+        return "We tried a few things, but couldn't deduce the person in question.  Can you tell me a bit more about them?", "placeholder_model", 0, 0, []  
   
     all_results_text = ' '.join(json.dumps(result) for result in valid_results)  
-    # Collect URLs  
     urls = [result['link'] for result in valid_results]  
   
-    # Send all data in one request to OpenAI  
     messages = [  
         {  
             "role": "system",  
@@ -205,7 +191,6 @@ async def search_person(query):
         input_tokens = 0  
         output_tokens = 0  
   
-    # Append the URLs used at the end of the response  
     sources_list = "\n\nHere are some of the URLs we used to deduce this information:\n" + '\n'.join(urls)  
     career_summary += sources_list  
   
