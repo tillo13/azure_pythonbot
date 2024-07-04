@@ -246,15 +246,7 @@ async def search_person(query):
     print(f"General Summary:\n{general_summary}")  
     print(f"General URLs:\n{general_urls}")  
   
-    return {  
-        "linkedin_summary": linkedin_summary,  
-        "linkedin_model_name": linkedin_model_name,  
-        "linkedin_input_tokens": linkedin_input_tokens,  
-        "linkedin_output_tokens": linkedin_output_tokens,  
-        "linkedin_urls": linkedin_urls,  
-        "general_summary": general_summary,  
-        "general_model_name": general_model_name,  
-        "general_input_tokens": general_input_tokens,  
-        "general_output_tokens": general_output_tokens,  
-        "general_urls": general_urls  
-    }  
+    return (  
+        linkedin_summary, linkedin_model_name, linkedin_input_tokens, linkedin_output_tokens, linkedin_urls,  
+        general_summary, general_model_name, general_input_tokens, general_output_tokens, general_urls  
+    )  
