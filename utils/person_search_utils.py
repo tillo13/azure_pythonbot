@@ -149,7 +149,12 @@ async def search_person(query):
     linkedin_post_results = google_search_linkedin_posts(query)[:MAX_NUMBER_OF_RESULTS_FROM_LINKEDIN - len(linkedin_profile_results)]  
     general_results = google_search(query)[:MAX_NUMBER_OF_RESULTS_IN_GENERAL]  
   
-    combined_results = linkedin_profile_results + linkedin_post_results + general_results  
+    # Combine results and ensure we get at least 5 LinkedIn and 5 non-LinkedIn URLs  
+    combined_results = linkedin_profile_results + linkedin_post_results  
+    non_linkedin_results = [result for result in general_results if 'linkedin.com' not in result['domain']]  
+    combined_results += non_linkedin_results[:5 - len(linkedin_post_results)]  
+    if len(combined_results) < 10:  
+        combined_results += general_results[:10 - len(combined_results)]  
   
     user_name = query.split()[0]  # Assume the first word in the query is the user's name  
     for result in combined_results:  
@@ -166,8 +171,16 @@ async def search_person(query):
     urls = [result['link'] for result in valid_results]  
   
     # Send all data in one request to OpenAI  
-    messages = [{"role": "system", "content": "You are a helpful assistant that summarizes the topics a user talks about online from a set of web content. Ensure the content is specifically about the person being searched and avoid making incorrect inferences. Do not mention the blurred face in the response."},  
-                {"role": "user", "content": f"Use up to 20 bullet points to describe some of the topics this person talks about online based on the provided content. Make sure to verify the context and avoid including irrelevant information: {all_results_text[:5000]}"}]  
+    messages = [  
+        {  
+            "role": "system",  
+            "content": "You are a helpful assistant that summarizes the topics a user talks about online from a set of web content. Ensure the content is specifically about the person being searched and avoid making incorrect inferences. Do not mention the blurred face in the response."  
+        },  
+        {  
+            "role": "user",  
+            "content": f"Use up to 20 bullet points to describe some of the topics this person talks about online based on the provided content. For each topic, include a citation mentioning where and what was talked about in a sentence or two: {all_results_text[:5000]}"  
+        }  
+    ]  
   
     client = openai.AzureOpenAI(  
         azure_endpoint=AZURE_OPENAI_ENDPOINT,  
