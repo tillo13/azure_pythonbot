@@ -154,7 +154,7 @@ async def search_person(query):
   
     valid_results = [result for result in combined_results if result['content']]  
     if not valid_results:  
-        return "Hm, sorry we couldn't find any valid results here.  Can you tell me more about the person?", "placeholder_model", 0, 0, []  
+        return "Hm, sorry we couldn't find any valid results!  Can you tell me more about the person?", "placeholder_model", 0, 0, []  
   
     all_results_text = ' '.join(json.dumps(result) for result in valid_results)  
   
