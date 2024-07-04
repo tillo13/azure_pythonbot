@@ -75,7 +75,7 @@ def google_search(query):
     cleaned_response_text = clean_html_content(response.text)  
   
     # Log the cleaned response text  
-    logger.debug(f"Cleaned response payload from Google search {url}: {cleaned_response_text}")  
+    logger.debug(f"PERSON_SEARCH_UTILS.PY>>> Cleaned response payload from Google search {url}: {cleaned_response_text}")  
   
     results = []  
     soup = BeautifulSoup(response.text, 'html.parser')  
@@ -90,7 +90,7 @@ def google_search(query):
                 if scores is None:  # Handle the case where moderate_content returns None  
                     safe = True  # Default to safe if content moderation fails  
             except Exception as e:  
-                logger.error(f"Error during content moderation: {e}")  
+                logger.error(f"PERSON_SEARCH_UTILS.PY>>> Error during content moderation: {e}")  
                 scores, safe = {}, True  
             if safe:  
                 results.append({'title': title, 'link': link, 'domain': domain, 'content': None})  
@@ -112,7 +112,7 @@ def extract_main_content(url, user_name):
     cleaned_response_text = clean_html_content(response.text)  
   
     # Log the cleaned response text  
-    logger.debug(f"Cleaned response payload from {url}: {cleaned_response_text}")  
+    logger.debug(f"PERSON_SEARCH_UTILS.PY>>> Cleaned response payload from {url}: {cleaned_response_text}")  
   
     soup = BeautifulSoup(response.text, 'html.parser')  
     for tag in soup(['script', 'style', 'footer', 'nav', '[class*="ad"]', 'header']):  
@@ -139,7 +139,7 @@ def extract_main_content(url, user_name):
         if not text_content or len(text_content) < 300 or (domain not in WHITELISTED_DOMAINS and not moderate_content(text_content)['flagged']):  
             return None, author  
     except Exception as e:  
-        logger.error(f"Error during content moderation: {e}")  
+        logger.error(f"PERSON_SEARCH_UTILS.PY>>> Error during content moderation: {e}")  
   
     # Apply the filter_phrases function to clean the content  
     return filter_phrases(text_content), author  
@@ -152,7 +152,6 @@ async def search_person(query):
     combined_results = linkedin_profile_results + linkedin_post_results + general_results  
   
     user_name = query.split()[0]  # Assume the first word in the query is the user's name  
-  
     for result in combined_results:  
         content, author = extract_main_content(result['link'], user_name)  
         result['content'] = content  
@@ -163,13 +162,12 @@ async def search_person(query):
         return "No valid results found for the given query.", "placeholder_model", 0, 0, []  
   
     all_results_text = ' '.join(json.dumps(result) for result in valid_results)  
-  
     # Collect URLs  
     urls = [result['link'] for result in valid_results]  
   
     # Send all data in one request to OpenAI  
-    messages = [{"role": "system", "content": "You are a helpful assistant that summarizes career events of a user from a set of web content. Ensure the content is specifically about the person being searched and avoid making incorrect inferences. Do not mention the blurred face in the response."},  
-                {"role": "user", "content": f"Use up to 20 bullet points to describe this person's work history and abilities based on the provided content. Make sure to verify the context and avoid including irrelevant information. Only include positions if they are part of the primary LinkedIn profile: {all_results_text[:5000]}"}]  
+    messages = [{"role": "system", "content": "You are a helpful assistant that summarizes the topics a user talks about online from a set of web content. Ensure the content is specifically about the person being searched and avoid making incorrect inferences. Do not mention the blurred face in the response."},  
+                {"role": "user", "content": f"Use up to 20 bullet points to describe some of the topics this person talks about online based on the provided content. Make sure to verify the context and avoid including irrelevant information: {all_results_text[:5000]}"}]  
   
     client = openai.AzureOpenAI(  
         azure_endpoint=AZURE_OPENAI_ENDPOINT,  
