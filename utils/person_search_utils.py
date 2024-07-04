@@ -140,113 +140,55 @@ def extract_main_content(url, user_name):
     return filter_phrases(text_content), author  
   
 async def search_person(query):  
-    # Step 1: Extract and summarize LinkedIn data  
-    linkedin_results = google_search_linkedin_posts(query)  
-    linkedin_results = linkedin_results[:MAX_NUMBER_OF_RESPONSE]  
+    combined_results = google_search_linkedin_posts(query) + google_search(query)  
+  
+    # Limit the number of responses to MAX_NUMBER_OF_RESPONSE  
+    combined_results = combined_results[:MAX_NUMBER_OF_RESPONSE]  
   
     user_name = query.split()[0]  # Assume the first word in the query is the user's name  
   
-    for result in linkedin_results:  
+    for result in combined_results:  
         content, author = extract_main_content(result['link'], user_name)  
         result['content'] = content  
         result['author'] = author  
   
-    valid_linkedin_results = [result for result in linkedin_results if result['content']]  
-    if valid_linkedin_results:  
-        all_linkedin_results_text = ' '.join(json.dumps(result) for result in valid_linkedin_results)  
-        linkedin_urls = [result['link'] for result in valid_linkedin_results]  
-        linkedin_messages = [  
-            {"role": "system", "content": "You are a helpful assistant that summarizes career events of a user from a set of web content. Ensure the content is specifically about the person being searched and avoid making incorrect inferences."},  
-            {"role": "user", "content": f"Use up to 20 bullet points to describe this person's work history and abilities based on the provided content. Make sure to verify the context and avoid including irrelevant information: {all_linkedin_results_text[:5000]}"}  
-        ]  
+    valid_results = [result for result in combined_results if result['content']]  
+    if not valid_results:  
+        return "No valid results found for the given query.", "placeholder_model", 0, 0, []  
   
-        client = openai.AzureOpenAI(  
-            azure_endpoint=AZURE_OPENAI_ENDPOINT,  
-            api_key=OPENAI_API_KEY,  
-            api_version=AZURE_OPENAI_API_VERSION  
-        )  
-        linkedin_response = client.chat.completions.create(  
-            model=OPENAI_MODEL,  
-            messages=linkedin_messages,  
-            temperature=0.5,  
-            max_tokens=2000,  
-            top_p=0.95,  
-            frequency_penalty=0,  
-            presence_penalty=0  
-        )  
+    all_results_text = ' '.join(json.dumps(result) for result in valid_results)  
   
-        if linkedin_response and linkedin_response.choices:  
-            linkedin_summary = linkedin_response.choices[0].message.content  
-            linkedin_model_name = linkedin_response.model  
-            linkedin_input_tokens = linkedin_response.usage.prompt_tokens  
-            linkedin_output_tokens = linkedin_response.usage.completion_tokens  
-        else:  
-            linkedin_summary = "Could not generate a summary for the given query."  
-            linkedin_model_name = "placeholder_model"  
-            linkedin_input_tokens = 0  
-            linkedin_output_tokens = 0  
-    else:  
-        linkedin_summary = "No valid LinkedIn results found for the given query."  
-        linkedin_model_name = "placeholder_model"  
-        linkedin_input_tokens = 0  
-        linkedin_output_tokens = 0  
-        linkedin_urls = []  
+    # Collect URLs  
+    urls = [result['link'] for result in valid_results]  
   
-    # Post LinkedIn results  
-    print(f"LinkedIn Summary:\n{linkedin_summary}")  
-    print(f"LinkedIn URLs:\n{linkedin_urls}")  
+    # Send all data in one request to OpenAI  
+    messages = [{"role": "system", "content": "You are a helpful assistant that summarizes career events of a user from a set of web content. Ensure the content is specifically about the person being searched and avoid making incorrect inferences."},  
+                {"role": "user", "content": f"Use up to 20 bullet points to describe this person's work history and abilities based on the provided content. Make sure to verify the context and avoid including irrelevant information: {all_results_text[:5000]}"}]  
   
-    # Step 2: Extract and summarize general (non-LinkedIn) data  
-    general_results = google_search(query)  
-    general_results = [result for result in general_results if 'linkedin.com' not in result['link']]  
-    general_results = general_results[:MAX_NUMBER_OF_RESPONSE]  
-  
-    for result in general_results:  
-        content, author = extract_main_content(result['link'], user_name)  
-        result['content'] = content  
-        result['author'] = author  
-  
-    valid_general_results = [result for result in general_results if result['content']]  
-    if valid_general_results:  
-        all_general_results_text = ' '.join(json.dumps(result) for result in valid_general_results)  
-        general_urls = [result['link'] for result in valid_general_results]  
-        general_messages = [  
-            {"role": "system", "content": "You are a helpful assistant that summarizes personal information about a user from a set of web content. Ensure the content is specifically about the person being searched and avoid making incorrect inferences."},  
-            {"role": "user", "content": f"Use up to 20 bullet points to describe this person's personal information and activities based on the provided content. Make sure to verify the context and avoid including irrelevant information: {all_general_results_text[:5000]}"}  
-        ]  
-  
-        general_response = client.chat.completions.create(  
-            model=OPENAI_MODEL,  
-            messages=general_messages,  
-            temperature=0.5,  
-            max_tokens=2000,  
-            top_p=0.95,  
-            frequency_penalty=0,  
-            presence_penalty=0  
-        )  
-  
-        if general_response and general_response.choices:  
-            general_summary = general_response.choices[0].message.content  
-            general_model_name = general_response.model  
-            general_input_tokens = general_response.usage.prompt_tokens  
-            general_output_tokens = general_response.usage.completion_tokens  
-        else:  
-            general_summary = "Could not generate a summary for the given query."  
-            general_model_name = "placeholder_model"  
-            general_input_tokens = 0  
-            general_output_tokens = 0  
-    else:  
-        general_summary = "No valid general results found for the given query."  
-        general_model_name = "placeholder_model"  
-        general_input_tokens = 0  
-        general_output_tokens = 0  
-        general_urls = []  
-  
-    # Post general (non-LinkedIn) results  
-    print(f"General Summary:\n{general_summary}")  
-    print(f"General URLs:\n{general_urls}")  
-  
-    return (  
-        linkedin_summary, linkedin_model_name, linkedin_input_tokens, linkedin_output_tokens, linkedin_urls,  
-        general_summary, general_model_name, general_input_tokens, general_output_tokens, general_urls  
+    client = openai.AzureOpenAI(  
+        azure_endpoint=AZURE_OPENAI_ENDPOINT,  
+        api_key=OPENAI_API_KEY,  
+        api_version=AZURE_OPENAI_API_VERSION  
     )  
+    response = client.chat.completions.create(  
+        model=OPENAI_MODEL,  
+        messages=messages,  
+        temperature=0.5,  
+        max_tokens=2000,  
+        top_p=0.95,  
+        frequency_penalty=0,  
+        presence_penalty=0  
+    )  
+  
+    if response and response.choices:  
+        career_summary = response.choices[0].message.content  
+        model_name = response.model  
+        input_tokens = response.usage.prompt_tokens  
+        output_tokens = response.usage.completion_tokens  
+    else:  
+        career_summary = "Could not generate a summary for the given query."  
+        model_name = "placeholder_model"  
+        input_tokens = 0  
+        output_tokens = 0  
+  
+    return career_summary, model_name, input_tokens, output_tokens, urls  
