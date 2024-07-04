@@ -15,9 +15,9 @@ load_dotenv()
 USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'  
 SEARCH_URL = 'https://www.google.com/search?q='  
 WHITELISTED_DOMAINS = ["linkedin.com", "twitter.com", "medium.com", "about.me", "facebook.com", "youtube.com"]  
-GPT_MODEL = "gpt4o"  
+GPT_MODEL = "gpt-4-turbo"  
 MAX_NUMBER_OF_RESULTS_FROM_LINKEDIN = 5  
-MAX_NUMBER_OF_RESULTS_IN_GENERAL = 5  
+MAX_NUMBER_OF_RESULTS_IN_GENERAL = 10  
   
 # CATEGORY_THRESHOLDS definition  
 CATEGORY_THRESHOLDS = {key: 0.01 for key in [  
@@ -147,7 +147,7 @@ def extract_main_content(url, user_name):
 async def search_person(query):  
     linkedin_profile_results = google_search_linkedin_profile(query)[:MAX_NUMBER_OF_RESULTS_FROM_LINKEDIN]  
     linkedin_post_results = google_search_linkedin_posts(query)[:MAX_NUMBER_OF_RESULTS_FROM_LINKEDIN]  
-    general_results = google_search(query)[:10]  # Get top 10 general results  
+    general_results = google_search(query)[:MAX_NUMBER_OF_RESULTS_IN_GENERAL]  # Get top 10 general results  
   
     # Combine all results and keep the first 10 unique URLs  
     combined_results = linkedin_profile_results + linkedin_post_results + general_results  
@@ -175,7 +175,7 @@ async def search_person(query):
         },  
         {  
             "role": "user",  
-            "content": f"Use up to 20 bullet points to describe some of the topics this person talks about and interacts with online based on the provided content. For each topic, include a citation mentioning where and what was talked about in a sentence or two. Ensure to include 'Source' at the end of each citation: {all_results_text[:5000]}"  
+            "content": f"Use up to 20 bullet points to describe some of the topics this person talks about or interacts with online based on the provided content. For each topic, include a citation mentioning where and what was talked about in a sentence or two. Ensure to include 'Source' at the end of each citation: {all_results_text[:8000]}"  
         }  
     ]  
   
@@ -188,7 +188,7 @@ async def search_person(query):
         model=OPENAI_MODEL,  
         messages=messages,  
         temperature=0.5,  
-        max_tokens=4000,  
+        max_tokens=8000,  
         top_p=0.95,  
         frequency_penalty=0,  
         presence_penalty=0  
