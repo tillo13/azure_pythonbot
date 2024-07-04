@@ -139,7 +139,7 @@ def extract_main_content(url, user_name):
     except Exception as e:  
         logger.error(f"PERSON_SEARCH_UTILS.PY>>> Error during content moderation: {e}")  
   
-    # Apply the filter_phrases function to clean the content  
+    # Apply the filter_phrases function to clean the content.  
     return filter_phrases(text_content), author  
   
 async def search_person(query):  
