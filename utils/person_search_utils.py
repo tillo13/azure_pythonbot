@@ -145,16 +145,13 @@ def extract_main_content(url, user_name):
     return filter_phrases(text_content), author  
   
 async def search_person(query):  
-    linkedin_profile_results = google_search_linkedin_profile(query)[:1]  # Try to find the main profile page  
-    linkedin_post_results = google_search_linkedin_posts(query)[:MAX_NUMBER_OF_RESULTS_FROM_LINKEDIN - len(linkedin_profile_results)]  
-    general_results = google_search(query)[:MAX_NUMBER_OF_RESULTS_IN_GENERAL]  
+    linkedin_profile_results = google_search_linkedin_profile(query)[:MAX_NUMBER_OF_RESULTS_FROM_LINKEDIN]  
+    linkedin_post_results = google_search_linkedin_posts(query)[:MAX_NUMBER_OF_RESULTS_FROM_LINKEDIN]  
+    general_results = google_search(query)[:10]  # Get top 10 general results  
   
-    # Combine results and ensure we get at least 5 LinkedIn and 5 non-LinkedIn URLs  
-    combined_results = linkedin_profile_results + linkedin_post_results  
-    non_linkedin_results = [result for result in general_results if 'linkedin.com' not in result['domain']]  
-    combined_results += non_linkedin_results[:5 - len(linkedin_post_results)]  
-    if len(combined_results) < 10:  
-        combined_results += general_results[:10 - len(combined_results)]  
+    # Combine all results and keep the first 10 unique URLs  
+    combined_results = linkedin_profile_results + linkedin_post_results + general_results  
+    combined_results = combined_results[:10]  # Limit to first 10 results  
   
     user_name = query.split()[0]  # Assume the first word in the query is the user's name  
     for result in combined_results:  
@@ -174,11 +171,11 @@ async def search_person(query):
     messages = [  
         {  
             "role": "system",  
-            "content": "You are a helpful assistant that summarizes the topics a user talks about online from a set of web content. Ensure the content is specifically about the person being searched and avoid making incorrect inferences. Do not mention the blurred face in the response."  
+            "content": "You are a helpful assistant that summarizes the topics a user talks about or interacts with online from a set of web content. Ensure the content is specifically about the person being searched and avoid making incorrect inferences."  
         },  
         {  
             "role": "user",  
-            "content": f"Use up to 20 bullet points to describe some of the topics this person talks about online based on the provided content. For each topic, include a citation mentioning where and what was talked about in a sentence or two: {all_results_text[:5000]}"  
+            "content": f"Use up to 20 bullet points to describe some of the topics this person talks about and interacts with online based on the provided content. For each topic, include a citation mentioning where and what was talked about in a sentence or two. Ensure to include 'Source' at the end of each citation: {all_results_text[:5000]}"  
         }  
     ]  
   
@@ -207,5 +204,9 @@ async def search_person(query):
         model_name = "placeholder_model"  
         input_tokens = 0  
         output_tokens = 0  
+  
+    # Append the URLs used at the end of the response  
+    sources_list = "\n\nHere are the URLs we used to deduce this information:\n" + '\n'.join(urls)  
+    career_summary += sources_list  
   
     return career_summary, model_name, input_tokens, output_tokens, urls  
