@@ -17,7 +17,7 @@ USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTM
 SEARCH_URL = 'https://www.google.com/search?q='  
 WHITELISTED_DOMAINS = ["linkedin.com", "twitter.com", "medium.com", "about.me", "facebook.com", "youtube.com"]  
 GPT_MODEL = "gpt-4-turbo"  
-MAX_NUMBER_OF_RESPONSES_PROFESSIONAL = 10  # Maximum number of professional articles to process  
+MAX_NUMBER_OF_RESPONSE = 10  # Maximum number of articles to process  
 MAX_NUMBER_OF_RESPONSES_PERSONAL = 10  # Maximum number of personal articles to process  
   
 # CATEGORY_THRESHOLDS definition  
@@ -146,9 +146,9 @@ def google_search_non_linkedin(query: str) -> List[Dict[str, Any]]:
     non_linkedin_results = [result for result in results if 'linkedin.com' not in result['link']]  
     return non_linkedin_results[:MAX_NUMBER_OF_RESPONSES_PERSONAL]  
   
-async def search_person(query: str) -> Tuple[str, str, int, int, List[str], str, str, int, int, List[str]]:  
+async def search_person(query: str):  
     # Perform LinkedIn search  
-    linkedin_results = google_search_linkedin_posts(query)[:MAX_NUMBER_OF_RESPONSES_PROFESSIONAL]  
+    linkedin_results = google_search_linkedin_posts(query)[:MAX_NUMBER_OF_RESPONSE]  
       
     user_name = query.split()[0]  # Assume the first word in the query is the user's name  
       
@@ -161,9 +161,6 @@ async def search_person(query: str) -> Tuple[str, str, int, int, List[str], str,
       
     if not valid_linkedin_results:  
         linkedin_summary = "No valid LinkedIn results found for the given query."  
-        linkedin_model_name = "placeholder_model"  
-        linkedin_input_tokens = 0  
-        linkedin_output_tokens = 0  
         linkedin_urls = []  
     else:  
         linkedin_all_results_text = ' '.join(json.dumps(result) for result in valid_linkedin_results)  
@@ -212,9 +209,6 @@ async def search_person(query: str) -> Tuple[str, str, int, int, List[str], str,
       
     if not valid_non_linkedin_results:  
         non_linkedin_summary = "No valid non-LinkedIn results found for the given query."  
-        non_linkedin_model_name = "placeholder_model"  
-        non_linkedin_input_tokens = 0  
-        non_linkedin_output_tokens = 0  
         non_linkedin_urls = []  
     else:  
         non_linkedin_all_results_text = ' '.join(json.dumps(result) for result in valid_non_linkedin_results)  
