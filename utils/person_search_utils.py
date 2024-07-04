@@ -145,7 +145,6 @@ def extract_main_content(url, user_name):
     return filter_phrases(text_content), author  
   
 async def search_person(query):  
-    # Search for the main LinkedIn profile page  
     linkedin_profile_results = google_search_linkedin_profile(query)[:1]  # Try to find the main profile page  
     linkedin_post_results = google_search_linkedin_posts(query)[:MAX_NUMBER_OF_RESULTS_FROM_LINKEDIN - len(linkedin_profile_results)]  
     general_results = google_search(query)[:MAX_NUMBER_OF_RESULTS_IN_GENERAL]  
@@ -163,17 +162,10 @@ async def search_person(query):
     if not valid_results:  
         return "No valid results found for the given query.", "placeholder_model", 0, 0, []  
   
-    # Ensure the main LinkedIn profile URL is at the top of the list  
-    main_profile_url = None  
-    for result in valid_results:  
-        if 'linkedin.com/in/' in result['link']:  
-            main_profile_url = result['link']  
-            break  
-  
     all_results_text = ' '.join(json.dumps(result) for result in valid_results)  
   
-    # Collect URLs, ensuring the main profile URL is first if it exists  
-    urls = [main_profile_url] + [result['link'] for result in valid_results if result['link'] != main_profile_url] if main_profile_url else [result['link'] for result in valid_results]  
+    # Collect URLs  
+    urls = [result['link'] for result in valid_results]  
   
     # Send all data in one request to OpenAI  
     messages = [{"role": "system", "content": "You are a helpful assistant that summarizes career events of a user from a set of web content. Ensure the content is specifically about the person being searched and avoid making incorrect inferences. Do not mention the blurred face in the response."},  
@@ -200,7 +192,7 @@ async def search_person(query):
         input_tokens = response.usage.prompt_tokens  
         output_tokens = response.usage.completion_tokens  
     else:  
-        career_summary = "Could not generate a summary for the given query."  
+        career_summary = "Could not generate a summary for the given user query."  
         model_name = "placeholder_model"  
         input_tokens = 0  
         output_tokens = 0  
