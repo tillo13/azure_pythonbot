@@ -99,6 +99,9 @@ def google_search(query):
 def google_search_linkedin_posts(query):  
     return google_search(f'{query} site:linkedin.com')  
   
+def google_search_linkedin_profile(query):  
+    return google_search(f'{query} site:linkedin.com/in/')  
+  
 def extract_main_content(url, user_name):  
     headers = {'User-Agent': USER_AGENT}  
     response = requests.get(url, headers=headers)  
@@ -142,10 +145,11 @@ def extract_main_content(url, user_name):
     return filter_phrases(text_content), author  
   
 async def search_person(query):  
-    linkedin_results = google_search_linkedin_posts(query)[:MAX_NUMBER_OF_RESULTS_FROM_LINKEDIN]  
+    linkedin_profile_results = google_search_linkedin_profile(query)[:1]  # Try to find the main profile page  
+    linkedin_post_results = google_search_linkedin_posts(query)[:MAX_NUMBER_OF_RESULTS_FROM_LINKEDIN - len(linkedin_profile_results)]  
     general_results = google_search(query)[:MAX_NUMBER_OF_RESULTS_IN_GENERAL]  
   
-    combined_results = linkedin_results + general_results  
+    combined_results = linkedin_profile_results + linkedin_post_results + general_results  
   
     user_name = query.split()[0]  # Assume the first word in the query is the user's name  
   
@@ -164,8 +168,8 @@ async def search_person(query):
     urls = [result['link'] for result in valid_results]  
   
     # Send all data in one request to OpenAI  
-    messages = [{"role": "system", "content": "You are a helpful assistant that summarizes career events of a user from a set of web content. Ensure the content is specifically about the person being searched and avoid making incorrect inferences."},  
-                {"role": "user", "content": f"Use up to 20 bullet points to describe this person's work history and abilities based on the provided content. Make sure to verify the context and avoid including irrelevant information: {all_results_text[:5000]}"}]  
+    messages = [{"role": "system", "content": "You are a helpful assistant that summarizes career events of a user from a set of web content. Ensure the content is specifically about the person being searched and avoid making incorrect inferences. Do not mention the blurred face in the response."},  
+                {"role": "user", "content": f"Use up to 20 bullet points to describe this person's work history and abilities based on the provided content. Make sure to verify the context and avoid including irrelevant information. Only include positions if they are part of the primary LinkedIn profile: {all_results_text[:5000]}"}]  
   
     client = openai.AzureOpenAI(  
         azure_endpoint=AZURE_OPENAI_ENDPOINT,  
