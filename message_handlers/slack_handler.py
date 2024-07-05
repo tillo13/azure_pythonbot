@@ -10,17 +10,16 @@ from utils.slack_utils import (
     remove_reaction_from_message,  
     create_slack_message,  
     parse_chat_history,  
-    convert_openai_response_to_slack_mrkdwn,
-    get_user_id
+    convert_openai_response_to_slack_mrkdwn,  
+    get_user_id  
 )  
 from utils.footer_utils import generate_footer  
 from utils.datetime_utils import get_current_time, calculate_elapsed_time  
 from utils.special_commands_utils import handle_special_commands  
+from utils.azure_postgres_utils import log_invocation_to_db  # Import the new utility  
 import json  
 import os  
-
 from utils.approved_users import is_user_approved  
-
   
 SLACK_TOKEN = os.environ.get("APPSETTING_SLACK_TOKEN")  
   
@@ -88,16 +87,37 @@ async def handle_attachments(turn_context, attachments, thread_ts):
         elif attachment.content_type == "application/pdf":  
             await handle_pdf_attachment(turn_context, attachment, thread_ts)  
   
-
-
 async def handle_slack_message(turn_context: TurnContext):  
     activity = turn_context.activity  
     try:  
-        logging.debug(f"Payload passed from app.py via slack_handler.py (#uncomment slack_handler.py to show full payload)")  
+        logging.debug(f"Payload passed from app.py via slack_handler.py")  
         user_message = activity.text  
-        logging.debug(f"Received message (#uncomment slack_handler.py to show full payload)")  
+        logging.debug(f"Received message")  
   
-        # Add this line to handle special commands  
+        # Log invocation details  
+        invocation_data = {  
+            "channel_id": activity.channel_id,  
+            "message_type": activity.type,  
+            "message_id": activity.id,  
+            "timestamp_from_endpoint": activity.timestamp,  
+            "local_timestamp_from_endpoint": get_current_time(),  
+            "local_timezone_from_endpoint": "UTC",  # You can adjust this based on your needs  
+            "service_url": activity.service_url,  
+            "from_id": activity.from_property.id,  
+            "from_name": activity.from_property.name,  
+            "conversation_id": activity.conversation.id,  
+            "attachment_exists": bool(activity.attachments),  
+            "recipient_id": activity.recipient.id,  
+            "recipient_name": activity.recipient.name,  
+            "channeldata_slack_app_id": activity.channel_data.get("SlackMessage", {}).get("event", {}).get("app_id"),  
+            "channeldata_slack_event_id": activity.channel_data.get("SlackMessage", {}).get("event", {}).get("event_id"),  
+            "channeldata_slack_event_time": activity.channel_data.get("SlackMessage", {}).get("event", {}).get("event_time"),  
+            "message_payload": json.dumps(activity.as_dict()),  
+            "interacting_user_id": get_user_id(activity),  
+            "channeldata_slack_thread_ts": get_parent_thread_ts(activity)  
+        }  
+        log_invocation_to_db(invocation_data)  
+  
         if await handle_special_commands(turn_context):  
             return  
   
@@ -121,7 +141,6 @@ async def handle_slack_message(turn_context: TurnContext):
         if user_id:  
             user_mention = f"<@{user_id}>"  
             is_approved = is_user_approved(user_id)  
-            # Log approval status  
             if is_approved:  
                 logging.info(f"User {user_id} is approved.")  
             else:  
@@ -138,14 +157,12 @@ async def handle_slack_message(turn_context: TurnContext):
             openai_response_data, model_name = get_openai_response(user_message, chat_history=chat_history, source="from_slack_handler")  
             logging.debug("Returned from get_openai_response")  
   
-            # Log the full JSON response from OpenAI  
             logging.debug("Full JSON response from OpenAI:")  
             logging.debug(json.dumps(openai_response_data, indent=2))  
   
             bot_response = openai_response_data['choices'][0]['message']['content']  
             logging.debug(f"OpenAI response: {bot_response}")  
   
-            # Extract token usage  
             usage = openai_response_data.get('usage', {})  
             input_tokens = usage.get('prompt_tokens', 0)  
             output_tokens = usage.get('completion_tokens', 0)  
@@ -153,7 +170,6 @@ async def handle_slack_message(turn_context: TurnContext):
             formatted_bot_response = convert_openai_response_to_slack_mrkdwn(bot_response)  
             response_time = calculate_elapsed_time(start_time)  
   
-            # Ensure this line passes all required arguments  
             footer = generate_footer("slack", response_time, model_name, input_tokens, output_tokens)  
             logging.debug(f"Generated footer: {footer}")  
   
@@ -180,7 +196,6 @@ async def handle_slack_message(turn_context: TurnContext):
         logging.error(f"Error processing OpenAI response: {e}")  
         await turn_context.send_activity(SLACK_MSG_ERROR)  
         await turn_context.send_activity(SLACK_MSG_FIX_BOT)  
-        # Add a fallback footer with default values if needed  
         footer = generate_footer("slack", 0)  
         await turn_context.send_activity(f"Footer: {footer}")  
   
@@ -188,6 +203,5 @@ async def handle_slack_message(turn_context: TurnContext):
         logging.error(f"Error in handle_slack_message: {e}")  
         await turn_context.send_activity(SLACK_MSG_ERROR)  
         await turn_context.send_activity(SLACK_MSG_FIX_BOT)  
-        # Add a fallback footer with default values if needed  
         footer = generate_footer("slack", 0)  
         await turn_context.send_activity(f"Footer: {footer}")  
