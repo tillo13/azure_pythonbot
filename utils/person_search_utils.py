@@ -231,7 +231,6 @@ async def search_person(query):
         else:  
             bullet_points = career_summary.split('\n')  
             career_summary = format_for_slack(bullet_points)  
-  
     else:  
         career_summary = "Could not generate a summary for the given user query."  
         model_name = "placeholder_model"  
