@@ -144,9 +144,7 @@ def calculate_likelihood_score(query, valid_results):
 def format_for_slack(bullet_points):  
     formatted_text = ""  
     for index, point in enumerate(bullet_points, 1):  
-        point = point.strip()  
-        if point and not point.startswith(f"{index}."):  
-            formatted_text += f"{index}. {point}\n\n"  
+        formatted_text += f"{index}. {point}\n\n"  
     return formatted_text.strip()  
   
 async def search_person(query):  
@@ -195,7 +193,7 @@ async def search_person(query):
         },  
         {  
             "role": "user",  
-            "content": f"Use up to 20 bullet points to describe some of the topics this person talks about or interacts with online based on the provided content. Each topic must mention '{query}' (the person being searched). Do not include any information or make any inferences about other individuals. For each topic, include a citation mentioning where and what was talked about in a sentence or two. Ensure to include 'Source' at the end of each citation. The citation format should be 'Source: {link}'. Here is the content: {all_results_text[:8000]}"  
+            "content": f"Use up to 20 bullet points to describe some of the topics this person talks about or interacts with online based on the provided content. Each topic must mention '{query}' (the person being searched). Do not include any information or make any inferences about other individuals. For each topic, include a citation mentioning where and what was talked about in a sentence or two. Ensure to include 'Source' at the end of each citation: {all_results_text[:8000]}"  
         }  
     ]  
   
