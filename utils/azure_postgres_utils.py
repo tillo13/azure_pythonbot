@@ -110,6 +110,8 @@ def log_invocation_to_db(data):
         """  
         logging.debug(f"Executing query: {query}")  
         logging.debug(f"With data: {data}")  
+        # Ensure local_timestamp_from_endpoint is a datetime object  
+        data['local_timestamp_from_endpoint'] = convert_timestamp_to_datetime(data['local_timestamp_from_endpoint'])  
         cursor.execute(query, data)  
         connection.commit()  
         result = cursor.fetchone()  
@@ -127,4 +129,3 @@ def log_invocation_to_db(data):
 # Function to convert timestamp to datetime  
 def convert_timestamp_to_datetime(timestamp):  
     return datetime.fromtimestamp(timestamp, tz=timezone.utc)  
-  
