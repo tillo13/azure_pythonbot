@@ -63,10 +63,10 @@ def google_search(query):
     response = requests.get(url, headers=headers)  
     if response.status_code != 200:  
         raise Exception(f'Failed to load page: {response.status_code}')  
-      
+  
     cleaned_response_text = clean_html_content(response.text)  
     logger.debug(f"PERSON_SEARCH_UTILS.PY>>> Cleaned response payload from Google search {url}: {cleaned_response_text}")  
-      
+  
     results = []  
     soup = BeautifulSoup(response.text, 'html.parser')  
     for item in soup.select('.tF2Cxc'):  
@@ -89,29 +89,29 @@ def extract_main_content(url, user_name):
     response = requests.get(url, headers=headers)  
     if response.status_code != 200:  
         return None, None  
-      
+  
     cleaned_response_text = clean_html_content(response.text)  
     logger.debug(f"PERSON_SEARCH_UTILS.PY>>> Cleaned response payload from {url}: {cleaned_response_text}")  
-      
+  
     soup = BeautifulSoup(response.text, 'html.parser')  
     for tag in soup(['script', 'style', 'footer', 'nav', '[class*="ad"]', 'header']):  
         tag.decompose()  
     domain = re.search(r"https?://(www\.)?([^/]+)", url).group(2)  
-      
+  
     author = None  
     if 'linkedin.com' in url:  
         author_tag = soup.find('span', {'class': 'feed-shared-actor__name'})  
         if author_tag:  
             author = author_tag.get_text().strip()  
-      
+  
     text_content = (' '.join(  
         [container.get_text().strip() for container in soup.find_all(['p', 'div', 'span'])]  
     ) if 'linkedin.com' not in url else clean_linkedin_content(  
         ' '.join([post.get_text().strip() for post in soup.find_all('p')]))).strip()  
-      
+  
     if author and user_name not in author:  
         return None, None  
-      
+  
     return filter_phrases(text_content), author  
   
 def calculate_likelihood_score(query, valid_results):  
@@ -130,6 +130,11 @@ def calculate_likelihood_score(query, valid_results):
   
     # Increase score based on the number of valid results  
     score += len(valid_results) * 5  # Small weight for each valid result  
+  
+    # Ensure the queried name is mentioned in the content  
+    for result in valid_results:  
+        if query.lower() in result['content'].lower():  
+            score += 10  # Additional weight for name match in content  
   
     # Normalize the score to be within 10 to 90  
     score = min(max(score, 10), max_score)  
@@ -151,7 +156,7 @@ async def search_person(query):
         result['author'] = author  
   
     valid_results = [result for result in combined_results if result['content']]  
-      
+  
     # Retry with "Teradata" filter if no valid results found  
     if not valid_results:  
         teradata_query = f"{query} Teradata"  
@@ -182,7 +187,7 @@ async def search_person(query):
         },  
         {  
             "role": "user",  
-            "content": f"Use up to 20 bullet points to describe some of the topics this person talks about or interacts with online based on the provided content. For each topic, include a citation mentioning where and what was talked about in a sentence or two. Ensure to include 'Source' at the end of each citation: {all_results_text[:8000]}"  
+            "content": f"Use up to 20 bullet points to describe some of the topics this person talks about or interacts with online based on the provided content. Each topic must mention '{query}' (the person being searched). Do not include any information or make any inferences about other individuals. For each topic, include a citation mentioning where and what was talked about in a sentence or two. Ensure to include 'Source' at the end of each citation: {all_results_text[:8000]}"  
         }  
     ]  
   
@@ -206,6 +211,18 @@ async def search_person(query):
         model_name = response.model  
         input_tokens = response.usage.prompt_tokens  
         output_tokens = response.usage.completion_tokens  
+  
+        # Filter out bullet points that do not mention the queried name  
+        filtered_summary = []  
+        for line in career_summary.split('\n'):  
+            if query.lower() in line.lower():  
+                filtered_summary.append(line)  
+  
+        career_summary = '\n'.join(filtered_summary)  
+  
+        if not filtered_summary:  
+            career_summary = "No relevant information found about the person queried."  
+  
     else:  
         career_summary = "Could not generate a summary for the given user query."  
         model_name = "placeholder_model"  
