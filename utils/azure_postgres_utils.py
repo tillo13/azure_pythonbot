@@ -1,6 +1,6 @@
 import os  
 import psycopg2  
-from psycopg2 import sql  
+from psycopg2 import sql, pool  
 import logging  
   
 # Load environment variables  
@@ -10,63 +10,108 @@ DATABASE_NAME = os.environ.get("2023oct9_AZURE_POSTGRES_DATABASE")
 DATABASE_PASSWORD = os.environ.get("2023oct9_AZURE_POSTGRES_PASSWORD")  
 DATABASE_PORT = os.environ.get("2023oct9_AZURE_POSTGRES_PORT")  
 DATABASE_INGRESS_TABLE = os.environ.get("2023oct9_AZURE_POSTGRES_DATABASE_INGRESS_TABLE")  
+DATABASE_ROUTER_LOG_TABLE = os.environ.get("2023oct12_AZURE_POSTGRES_DATABASE_ROUTER_LOG_TABLE")  
   
-# Debug prints to verify environment variables  
-logging.debug(f"DATABASE_USER: {DATABASE_USER}")  
-logging.debug(f"DATABASE_HOST: {DATABASE_HOST}")  
-logging.debug(f"DATABASE_NAME: {DATABASE_NAME}")  
-logging.debug(f"DATABASE_PASSWORD: {DATABASE_PASSWORD}")  
-logging.debug(f"DATABASE_PORT: {DATABASE_PORT}")  
-logging.debug(f"DATABASE_INGRESS_TABLE: {DATABASE_INGRESS_TABLE}")  
+# Initialize connection pool  
+try:  
+    connection_pool = psycopg2.pool.SimpleConnectionPool(  
+        1, 20, user=DATABASE_USER, password=DATABASE_PASSWORD,  
+        host=DATABASE_HOST, port=DATABASE_PORT,  
+        database=DATABASE_NAME, sslmode='require'  
+    )  
+    if connection_pool:  
+        logging.info("Connection pool created successfully.")  
+except Exception as e:  
+    logging.error(f"Error creating connection pool: {e}")  
   
 def get_db_connection():  
     try:  
-        connection = psycopg2.connect(  
-            user=DATABASE_USER,  
-            password=DATABASE_PASSWORD,  
-            host=DATABASE_HOST,  
-            port=DATABASE_PORT,  
-            database=DATABASE_NAME,  
-            sslmode='require'  # Ensure SSL is used  
-        )  
-        logging.debug("Successfully connected to the database.")  
-        return connection  
+        connection = connection_pool.getconn()  
+        if connection:  
+            logging.debug("Successfully obtained connection from pool.")  
+            return connection  
     except Exception as e:  
-        logging.error(f"Error connecting to the database: {e}")  
+        logging.error(f"Error getting connection from pool: {e}")  
+    return None  
+  
+def release_db_connection(connection):  
+    try:  
+        connection_pool.putconn(connection)  
+        logging.debug("Successfully released connection back to pool.")  
+    except Exception as e:  
+        logging.error(f"Error releasing connection back to pool: {e}")  
+  
+def get_qa_from_database():  
+    connection = get_db_connection()  
+    if connection is None:  
         return None  
   
-def log_invocation_to_db(data):  
+    try:  
+        cursor = connection.cursor()  
+        query = sql.SQL("SELECT question, answer FROM {} ORDER BY RANDOM() LIMIT 1").format(  
+            sql.Identifier(DATABASE_INGRESS_TABLE)  
+        )  
+        cursor.execute(query)  
+        result = cursor.fetchone()  
+        cursor.close()  
+        return result  
+    except Exception as e:  
+        logging.error(f"Error querying database: {e}")  
+        return None  
+    finally:  
+        release_db_connection(connection)  
+  
+def bot_ingress_save_data_to_postgres(data, channel_id):  
     connection = get_db_connection()  
     if connection is None:  
         return  
   
     try:  
         cursor = connection.cursor()  
-        insert_query = sql.SQL("""  
-            INSERT INTO {table} (  
+        query = sql.SQL("""  
+            INSERT INTO {} (  
                 channel_id, message_type, message_id, timestamp_from_endpoint,   
                 local_timestamp_from_endpoint, local_timezone_from_endpoint,   
                 service_url, from_id, from_name, conversation_id,   
                 attachment_exists, recipient_id, recipient_name,   
-                channeldata_slack_app_id, channeldata_slack_event_id,   
-                channeldata_slack_event_time, message_payload, interacting_user_id,   
-                channeldata_slack_thread_ts  
+                channeldata_webchat_id, channeldata_slack_app_id,   
+                channeldata_slack_event_id, channeldata_slack_event_time,   
+                channeldata_msteams_tenant_id, message_payload, created_via  
             ) VALUES (  
-                %(channel_id)s, %(message_type)s, %(message_id)s, %(timestamp_from_endpoint)s,   
-                %(local_timestamp_from_endpoint)s, %(local_timezone_from_endpoint)s,   
-                %(service_url)s, %(from_id)s, %(from_name)s, %(conversation_id)s,   
-                %(attachment_exists)s, %(recipient_id)s, %(recipient_name)s,   
-                %(channeldata_slack_app_id)s, %(channeldata_slack_event_id)s,   
-                %(channeldata_slack_event_time)s, %(message_payload)s, %(interacting_user_id)s,   
-                %(channeldata_slack_thread_ts)s  
-            )  
-        """).format(table=sql.Identifier(DATABASE_INGRESS_TABLE))  
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s  
+            ) RETURNING pk_id, message_id  
+        """).format(sql.Identifier(DATABASE_INGRESS_TABLE))  
   
-        cursor.execute(insert_query, data)  
+        cursor.execute(query, (  
+            channel_id, data['type'], data['id'], data['timestamp'], data['localTimestamp'],   
+            data['localTimezone'], data['serviceUrl'], data['from']['id'], data['from']['name'],   
+            data['conversation']['id'], bool(data.get('attachments')), data['recipient']['id'],   
+            data['recipient']['name'], data['channelData'].get('clientActivityID'),   
+            data['channelData'].get('SlackMessage', {}).get('api_app_id'),   
+            data['channelData'].get('SlackMessage', {}).get('event_id'),   
+            data['channelData'].get('SlackMessage', {}).get('event_time'),   
+            data['channelData'].get('tenant', {}).get('id'),   
+            (data['text'] or "").substring(0, 2900), data.get('filename_ingress')  
+        ))  
         connection.commit()  
+        result = cursor.fetchone()  
         cursor.close()  
-        logging.debug("Successfully logged invocation to the database.")  
+  
+        if result:  
+            logging.info(f"Data saved to bot_invoke_log with messageID: {result[1]}, and pk_id: {result[0]}")  
+        else:  
+            logging.info("No data returned after insert operation for botIngress path.")  
     except Exception as e:  
-        logging.error(f"Error logging data to the database: {e}")  
+        logging.error(f"Failed to save data to Postgres for botIngress path: {e}")  
     finally:  
-        connection.close()  
+        release_db_connection(connection)  
+  
+# Similarly, other functions can be implemented based on your JavaScript code...  
+  
+if __name__ == "__main__":  
+    # Example usage  
+    qa = get_qa_from_database()  
+    if qa:  
+        logging.info(f"Question: {qa[0]}, Answer: {qa[1]}")  
+    else:  
+        logging.error("Failed to retrieve QA from database.")  
