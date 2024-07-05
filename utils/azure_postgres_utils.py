@@ -26,7 +26,8 @@ def get_db_connection():
             password=DATABASE_PASSWORD,  
             host=DATABASE_HOST,  
             port=DATABASE_PORT,  
-            database=DATABASE_NAME  
+            database=DATABASE_NAME,  
+            sslmode='require'  # Ensure SSL is used  
         )  
         logging.debug("Successfully connected to the database.")  
         return connection  
