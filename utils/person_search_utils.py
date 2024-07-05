@@ -141,6 +141,12 @@ def calculate_likelihood_score(query, valid_results):
   
     return score  
   
+def format_for_slack(bullet_points):  
+    formatted_text = ""  
+    for index, point in enumerate(bullet_points, 1):  
+        formatted_text += f"{index}. {point}\n\n"  
+    return formatted_text.strip()  
+  
 async def search_person(query):  
     linkedin_profile_results = google_search_linkedin_profile(query)[:MAX_NUMBER_OF_RESULTS_FROM_LINKEDIN]  
     linkedin_post_results = google_search_linkedin_posts(query)[:MAX_NUMBER_OF_RESULTS_FROM_LINKEDIN]  
@@ -175,7 +181,7 @@ async def search_person(query):
         valid_results = [result for result in combined_results if result['content']]  
   
     if not valid_results:  
-        return "We tried a few things, but couldn't deduce the person in question.  Can you tell me a bit more about them?", "placeholder_model", 0, 0, []  
+        return "We tried a few things, but couldn't deduce the person in question. Can you tell me a bit more about them?", "placeholder_model", 0, 0, []  
   
     all_results_text = ' '.join(json.dumps(result) for result in valid_results)  
     urls = [result['link'] for result in valid_results]  
@@ -222,6 +228,9 @@ async def search_person(query):
   
         if not filtered_summary:  
             career_summary = "No relevant information found about the person queried."  
+        else:  
+            bullet_points = career_summary.split('\n')  
+            career_summary = format_for_slack(bullet_points)  
   
     else:  
         career_summary = "Could not generate a summary for the given user query."  
