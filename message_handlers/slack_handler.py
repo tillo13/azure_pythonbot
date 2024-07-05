@@ -16,7 +16,7 @@ from utils.slack_utils import (
 from utils.footer_utils import generate_footer  
 from utils.datetime_utils import get_current_time, calculate_elapsed_time  
 from utils.special_commands_utils import handle_special_commands  
-from utils.azure_postgres_utils import log_invocation_to_db 
+from utils.azure_postgres_utils import log_invocation_to_db  
 import json  
 import os  
 from utils.approved_users import is_user_approved  
@@ -112,7 +112,7 @@ async def handle_slack_message(turn_context: TurnContext):
             "channeldata_slack_app_id": activity.channel_data.get("SlackMessage", {}).get("event", {}).get("app_id"),  
             "channeldata_slack_event_id": activity.channel_data.get("SlackMessage", {}).get("event", {}).get("event_id"),  
             "channeldata_slack_event_time": activity.channel_data.get("SlackMessage", {}).get("event", {}).get("event_time"),  
-            "message_payload": json.dumps(activity.as_dict()),  
+            "message_payload": activity.text,  # Extract only the text content  
             "interacting_user_id": get_user_id(activity),  
             "channeldata_slack_thread_ts": get_parent_thread_ts(activity)  
         }  
