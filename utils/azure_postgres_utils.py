@@ -1,7 +1,8 @@
 import os  
 import psycopg2  
-from psycopg2 import sql, pool  
+from psycopg2 import pool  
 import logging  
+from datetime import datetime, timezone  
   
 # Configure logging  
 logging.basicConfig(level=logging.DEBUG)  
@@ -122,3 +123,8 @@ def log_invocation_to_db(data):
         logging.error(f"Failed to save Slack data to Postgres: {e}")  
     finally:  
         release_db_connection(connection)  
+  
+# Function to convert timestamp to datetime  
+def convert_timestamp_to_datetime(timestamp):  
+    return datetime.fromtimestamp(timestamp, tz=timezone.utc)  
+  
