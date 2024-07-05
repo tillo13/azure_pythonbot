@@ -14,6 +14,14 @@ DATABASE_PASSWORD = os.environ.get("APPSETTING_2023oct9_AZURE_POSTGRES_PASSWORD"
 DATABASE_PORT = os.environ.get("APPSETTING_2023oct9_AZURE_POSTGRES_PORT", "5432")  
 DATABASE_INGRESS_TABLE = os.environ.get("APPSETTING_2023oct9_AZURE_POSTGRES_DATABASE_INGRESS_TABLE", "default_table")  
   
+# Print environment variable values for verification  
+print("DATABASE_USER:", DATABASE_USER)  
+print("DATABASE_HOST:", DATABASE_HOST)  
+print("DATABASE_NAME:", DATABASE_NAME)  
+print("DATABASE_PASSWORD:", DATABASE_PASSWORD)  
+print("DATABASE_PORT:", DATABASE_PORT)  
+print("DATABASE_INGRESS_TABLE:", DATABASE_INGRESS_TABLE)  
+  
 # Log the connection parameters (excluding sensitive information)  
 logging.debug(f"DATABASE_HOST: {DATABASE_HOST}, DATABASE_PORT: {DATABASE_PORT}, DATABASE_USER: {DATABASE_USER}, DATABASE_NAME: {DATABASE_NAME}")  
   
@@ -80,8 +88,8 @@ def log_invocation_to_db(data):
   
     try:  
         cursor = connection.cursor()  
-        query = sql.SQL("""  
-            INSERT INTO {table} (  
+        query = f"""  
+            INSERT INTO {DATABASE_INGRESS_TABLE} (  
                 channel_id, message_type, message_id, timestamp_from_endpoint,   
                 local_timestamp_from_endpoint, local_timezone_from_endpoint,   
                 service_url, from_id, from_name, conversation_id,   
@@ -98,8 +106,9 @@ def log_invocation_to_db(data):
                 %(channeldata_slack_event_time)s, %(message_payload)s, %(interacting_user_id)s,   
                 %(channeldata_slack_thread_ts)s  
             ) RETURNING pk_id, message_id  
-        """).format(sql.Identifier(DATABASE_INGRESS_TABLE))  
-  
+        """  
+        logging.debug(f"Executing query: {query}")  
+        logging.debug(f"With data: {data}")  
         cursor.execute(query, data)  
         connection.commit()  
         result = cursor.fetchone()  
