@@ -16,7 +16,7 @@ from utils.slack_utils import (
 from utils.footer_utils import generate_footer  
 from utils.datetime_utils import get_current_time, calculate_elapsed_time  
 from utils.special_commands_utils import handle_special_commands  
-from utils.azure_postgres_utils import log_invocation_to_db  # Import the new utility  
+from utils.azure_postgres_utils import log_invocation_to_db 
 import json  
 import os  
 from utils.approved_users import is_user_approved  

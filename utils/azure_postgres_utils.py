@@ -3,6 +3,9 @@ import psycopg2
 from psycopg2 import sql, pool  
 import logging  
   
+# Configure logging  
+logging.basicConfig(level=logging.DEBUG)  
+  
 # Load environment variables  
 DATABASE_USER = os.environ.get("2023oct9_AZURE_POSTGRES_USER")  
 DATABASE_HOST = os.environ.get("2023oct9_AZURE_POSTGRES_HOST")  
@@ -10,6 +13,9 @@ DATABASE_NAME = os.environ.get("2023oct9_AZURE_POSTGRES_DATABASE")
 DATABASE_PASSWORD = os.environ.get("2023oct9_AZURE_POSTGRES_PASSWORD")  
 DATABASE_PORT = os.environ.get("2023oct9_AZURE_POSTGRES_PORT")  
 DATABASE_INGRESS_TABLE = os.environ.get("2023oct9_AZURE_POSTGRES_DATABASE_INGRESS_TABLE")  
+  
+# Log the connection parameters (excluding sensitive information)  
+logging.debug(f"DATABASE_HOST: {DATABASE_HOST}, DATABASE_PORT: {DATABASE_PORT}, DATABASE_USER: {DATABASE_USER}, DATABASE_NAME: {DATABASE_NAME}")  
   
 # Initialize connection pool  
 try:  
@@ -22,8 +28,30 @@ try:
         logging.info("Connection pool created successfully.")  
 except Exception as e:  
     logging.error(f"Error creating connection pool: {e}")  
+    connection_pool = None  # Ensure the rest of the app can continue even if the pool fails  
+  
+def test_db_connection():  
+    try:  
+        connection = psycopg2.connect(  
+            user=DATABASE_USER,  
+            password=DATABASE_PASSWORD,  
+            host=DATABASE_HOST,  
+            port=DATABASE_PORT,  
+            database=DATABASE_NAME,  
+            sslmode='require'  
+        )  
+        logging.info("Successfully connected to the database using direct connection.")  
+        connection.close()  
+    except Exception as e:  
+        logging.error(f"Direct connection test failed: {e}")  
+  
+test_db_connection()  
   
 def get_db_connection():  
+    if connection_pool is None:  
+        logging.error("Connection pool is not available.")  
+        return None  
+  
     try:  
         connection = connection_pool.getconn()  
         if connection:  
@@ -34,6 +62,10 @@ def get_db_connection():
     return None  
   
 def release_db_connection(connection):  
+    if connection_pool is None:  
+        logging.error("Connection pool is not available.")  
+        return  
+  
     try:  
         connection_pool.putconn(connection)  
         logging.debug("Successfully released connection back to pool.")  
@@ -43,6 +75,7 @@ def release_db_connection(connection):
 def log_invocation_to_db(data):  
     connection = get_db_connection()  
     if connection is None:  
+        logging.error("No database connection available. Skipping log invocation.")  
         return  
   
     try:  
