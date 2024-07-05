@@ -158,14 +158,10 @@ async def search_person(query):
     combined_results = combined_results[:10]  
   
     user_name = query.split()[0]  
-    processed_urls = set()  
     for result in combined_results:  
-        if result['link'] in processed_urls:  
-            continue  
         content, author = extract_main_content(result['link'], user_name)  
         result['content'] = content  
         result['author'] = author  
-        processed_urls.add(result['link'])  
   
     valid_results = [result for result in combined_results if result['content']]  
   
@@ -179,14 +175,10 @@ async def search_person(query):
         combined_results = linkedin_profile_results + linkedin_post_results + general_results  
         combined_results = combined_results[:10]  
   
-        processed_urls.clear()  
         for result in combined_results:  
-            if result['link'] in processed_urls:  
-                continue  
             content, author = extract_main_content(result['link'], user_name)  
             result['content'] = content  
             result['author'] = author  
-            processed_urls.add(result['link'])  
   
         valid_results = [result for result in combined_results if result['content']]  
   
@@ -203,7 +195,7 @@ async def search_person(query):
         },  
         {  
             "role": "user",  
-            "content": f"Use up to 20 bullet points to describe some of the topics this person talks about or interacts with online based on the provided content. Each topic must mention '{query}' (the person being searched). Do not include any information or make any inferences about other individuals. For each topic, include a citation mentioning where and what was talked about in a sentence or two. Ensure to include 'Source' at the end of each citation: {all_results_text[:8000]}"  
+            "content": f"Use up to 20 bullet points to describe some of the topics this person talks about or interacts with online based on the provided content. Each topic must mention '{query}' (the person being searched). Do not include any information or make any inferences about other individuals. For each topic, include a citation mentioning where and what was talked about in a sentence or two. Ensure to include 'Source' at the end of each citation. The citation format should be 'Source: {link}'. Here is the content: {all_results_text[:8000]}"  
         }  
     ]  
   
