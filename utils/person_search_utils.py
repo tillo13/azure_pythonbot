@@ -144,7 +144,9 @@ def calculate_likelihood_score(query, valid_results):
 def format_for_slack(bullet_points):  
     formatted_text = ""  
     for index, point in enumerate(bullet_points, 1):  
-        formatted_text += f"{index}. {point}\n\n"  
+        point = point.strip()  
+        if point and not point.startswith(f"{index}."):  
+            formatted_text += f"{index}. {point}\n\n"  
     return formatted_text.strip()  
   
 async def search_person(query):  
@@ -156,10 +158,14 @@ async def search_person(query):
     combined_results = combined_results[:10]  
   
     user_name = query.split()[0]  
+    processed_urls = set()  
     for result in combined_results:  
+        if result['link'] in processed_urls:  
+            continue  
         content, author = extract_main_content(result['link'], user_name)  
         result['content'] = content  
         result['author'] = author  
+        processed_urls.add(result['link'])  
   
     valid_results = [result for result in combined_results if result['content']]  
   
@@ -173,10 +179,14 @@ async def search_person(query):
         combined_results = linkedin_profile_results + linkedin_post_results + general_results  
         combined_results = combined_results[:10]  
   
+        processed_urls.clear()  
         for result in combined_results:  
+            if result['link'] in processed_urls:  
+                continue  
             content, author = extract_main_content(result['link'], user_name)  
             result['content'] = content  
             result['author'] = author  
+            processed_urls.add(result['link'])  
   
         valid_results = [result for result in combined_results if result['content']]  
   
