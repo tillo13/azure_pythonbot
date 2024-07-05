@@ -6,13 +6,13 @@ import logging
 # Configure logging  
 logging.basicConfig(level=logging.DEBUG)  
   
-# Load environment variables  
-DATABASE_USER = os.environ.get("2023oct9_AZURE_POSTGRES_USER")  
-DATABASE_HOST = os.environ.get("2023oct9_AZURE_POSTGRES_HOST")  
-DATABASE_NAME = os.environ.get("2023oct9_AZURE_POSTGRES_DATABASE")  
-DATABASE_PASSWORD = os.environ.get("2023oct9_AZURE_POSTGRES_PASSWORD")  
-DATABASE_PORT = os.environ.get("2023oct9_AZURE_POSTGRES_PORT")  
-DATABASE_INGRESS_TABLE = os.environ.get("2023oct9_AZURE_POSTGRES_DATABASE_INGRESS_TABLE")  
+# Load environment variables with defaults  
+DATABASE_USER = os.environ.get("APPSETTING_2023oct9_AZURE_POSTGRES_USER", "default_user")  
+DATABASE_HOST = os.environ.get("APPSETTING_2023oct9_AZURE_POSTGRES_HOST", "localhost")  
+DATABASE_NAME = os.environ.get("APPSETTING_2023oct9_AZURE_POSTGRES_DATABASE", "default_db")  
+DATABASE_PASSWORD = os.environ.get("APPSETTING_2023oct9_AZURE_POSTGRES_PASSWORD", "default_password")  
+DATABASE_PORT = os.environ.get("APPSETTING_2023oct9_AZURE_POSTGRES_PORT", "5432")  
+DATABASE_INGRESS_TABLE = os.environ.get("APPSETTING_2023oct9_AZURE_POSTGRES_DATABASE_INGRESS_TABLE", "default_table")  
   
 # Log the connection parameters (excluding sensitive information)  
 logging.debug(f"DATABASE_HOST: {DATABASE_HOST}, DATABASE_PORT: {DATABASE_PORT}, DATABASE_USER: {DATABASE_USER}, DATABASE_NAME: {DATABASE_NAME}")  
