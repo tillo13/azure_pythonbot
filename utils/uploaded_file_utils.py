@@ -1,9 +1,16 @@
 import logging  
 import requests  
 import base64  
+import hashlib  
 from botbuilder.schema import Activity, ActivityTypes  
 from utils.openai_utils import process_and_summarize_text, extract_text_from_pdf, get_openai_image_response  
 from constants import *  
+  
+def generate_file_hash(file_content):  
+    """Generate a SHA-256 hash for the given file content."""  
+    sha256 = hashlib.sha256()  
+    sha256.update(file_content)  
+    return sha256.hexdigest()  
   
 def download_and_encode_image(url):  
     try:  
@@ -22,9 +29,20 @@ async def send_message(turn_context, message):
   
 async def process_attachment(turn_context, attachment, process_func, success_message, error_message):  
     try:  
+        # Download the file content  
+        response = requests.get(attachment.content_url)  
+        response.raise_for_status()  
+        file_content = response.content  
+          
+        # Generate hash for the file content  
+        file_hash = generate_file_hash(file_content)  
+        logging.info(f"Generated hash for the uploaded document: {file_hash}")  
+          
+        # Proceed with processing  
         await send_message(turn_context, success_message)  
         await turn_context.send_activity(Activity(type=ActivityTypes.typing))  
         result = process_func(attachment.content_url)  
+          
         await send_message(turn_context, result)  
     except Exception as e:  
         logging.error(f"Error processing attachment: {e}")  

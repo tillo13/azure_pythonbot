@@ -206,7 +206,7 @@ async def search_person(query):
         model=OPENAI_MODEL,  
         messages=messages,  
         temperature=0.5,  
-        max_tokens=4096,  
+        max_tokens=3096,  
         top_p=0.95,  
         frequency_penalty=0,  
         presence_penalty=0  
