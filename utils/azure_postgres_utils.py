@@ -11,6 +11,14 @@ DATABASE_PASSWORD = os.environ.get("2023oct9_AZURE_POSTGRES_PASSWORD")
 DATABASE_PORT = os.environ.get("2023oct9_AZURE_POSTGRES_PORT")  
 DATABASE_INGRESS_TABLE = os.environ.get("2023oct9_AZURE_POSTGRES_DATABASE_INGRESS_TABLE")  
   
+# Debug prints to verify environment variables  
+logging.debug(f"DATABASE_USER: {DATABASE_USER}")  
+logging.debug(f"DATABASE_HOST: {DATABASE_HOST}")  
+logging.debug(f"DATABASE_NAME: {DATABASE_NAME}")  
+logging.debug(f"DATABASE_PASSWORD: {DATABASE_PASSWORD}")  
+logging.debug(f"DATABASE_PORT: {DATABASE_PORT}")  
+logging.debug(f"DATABASE_INGRESS_TABLE: {DATABASE_INGRESS_TABLE}")  
+  
 def get_db_connection():  
     try:  
         connection = psycopg2.connect(  
@@ -20,6 +28,7 @@ def get_db_connection():
             port=DATABASE_PORT,  
             database=DATABASE_NAME  
         )  
+        logging.debug("Successfully connected to the database.")  
         return connection  
     except Exception as e:  
         logging.error(f"Error connecting to the database: {e}")  
@@ -55,6 +64,7 @@ def log_invocation_to_db(data):
         cursor.execute(insert_query, data)  
         connection.commit()  
         cursor.close()  
+        logging.debug("Successfully logged invocation to the database.")  
     except Exception as e:  
         logging.error(f"Error logging data to the database: {e}")  
     finally:  
