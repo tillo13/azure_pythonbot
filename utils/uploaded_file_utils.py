@@ -28,6 +28,9 @@ async def send_message(turn_context, message):
         text=message  
     ))  
   
+
+
+  
 async def process_attachment(turn_context, attachment, process_func, success_message, error_message):  
     try:  
         # Download the file content  
@@ -39,19 +42,20 @@ async def process_attachment(turn_context, attachment, process_func, success_mes
         file_hash = generate_file_hash(file_content)  
         logging.info(f"Generated hash for the uploaded document: {file_hash}")  
   
-        # Save or fetch the file based on hash  
-        existing_file_payload = save_or_fetch_file_hash(file_hash, file_content, turn_context.activity.from_property.id)  
+        # Check if we already have a response for this file hash  
+        existing_openai_response = save_or_fetch_file_hash(file_hash, None, turn_context.activity.from_property.id)  
   
-        if existing_file_payload:  
-            logging.info(f"File with hash {file_hash} already exists. Using the existing file.")  
-            file_content = existing_file_payload  
+        if existing_openai_response:  
+            logging.info(f"File with hash {file_hash} already exists. Using the existing OpenAI response.")  
+            await send_message(turn_context, existing_openai_response)  
+        else:  
+            # Process the file and get OpenAI response  
+            openai_response = process_func(attachment.content_url)  
+            save_or_fetch_file_hash(file_hash, openai_response, turn_context.activity.from_property.id)  
   
-        # Proceed with processing  
-        await send_message(turn_context, success_message)  
-        await turn_context.send_activity(Activity(type=ActivityTypes.typing))  
-        result = process_func(attachment.content_url)  
-  
-        await send_message(turn_context, result)  
+            await send_message(turn_context, success_message)  
+            await turn_context.send_activity(Activity(type=ActivityTypes.typing))  
+            await send_message(turn_context, openai_response)  
     except Exception as e:  
         logging.error(f"Error processing attachment: {e}")  
         await send_message(turn_context, error_message)  
@@ -86,6 +90,7 @@ def process_pdf(url):
             raise ValueError("Failed to extract text from PDF")  
     else:  
         raise ValueError("Failed to download PDF")  
+
   
 async def handle_image_attachment(turn_context, attachment, thread_ts=None):  
     await process_attachment(turn_context, attachment, process_image, MSG_IMAGE_RECEIVED, MSG_IMAGE_ERROR)  

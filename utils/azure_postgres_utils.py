@@ -129,8 +129,8 @@ def log_invocation_to_db(data):
 # Function to convert timestamp to datetime  
 def convert_timestamp_to_datetime(timestamp):  
     return datetime.fromtimestamp(timestamp, tz=timezone.utc)  
-  
-def save_or_fetch_file_hash(hash_value, file_payload, uploaded_by):  
+
+def save_or_fetch_file_hash(hash_value, openai_response, uploaded_by):  
     connection = get_db_connection()  
     if connection is None:  
         logging.error("No database connection available. Skipping save or fetch file operation.")  
@@ -138,7 +138,7 @@ def save_or_fetch_file_hash(hash_value, file_payload, uploaded_by):
   
     try:  
         cursor = connection.cursor()  
-          
+  
         # Check if the hash value already exists  
         query_check = "SELECT pk_id, file_payload FROM public.bot_file_upload_hashes WHERE hash_value = %s"  
         cursor.execute(query_check, (hash_value,))  
@@ -146,20 +146,19 @@ def save_or_fetch_file_hash(hash_value, file_payload, uploaded_by):
   
         if existing_record:  
             logging.info(f"File with hash {hash_value} already exists. Fetching existing record.")  
-            return existing_record[1]  # Return the existing file payload  
-          
+            return existing_record[1]  # Return the existing OpenAI response  
+  
         # Insert the new file record  
         query_insert = """  
             INSERT INTO public.bot_file_upload_hashes (hash_value, file_payload, uploaded_by)  
             VALUES (%s, %s, %s) RETURNING pk_id  
         """  
-        cursor.execute(query_insert, (hash_value, psycopg2.Binary(file_payload), uploaded_by))  
+        cursor.execute(query_insert, (hash_value, openai_response, uploaded_by))  
         connection.commit()  
         pk_id = cursor.fetchone()[0]  
         cursor.close()  
         logging.info(f"File with hash {hash_value} saved successfully with pk_id: {pk_id}")  
         return None  
-  
     except Exception as e:  
         logging.error(f"Failed to save or fetch file: {e}")  
         return None  
