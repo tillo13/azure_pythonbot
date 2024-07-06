@@ -91,20 +91,20 @@ def log_invocation_to_db(data):
         cursor = connection.cursor()  
         query = f"""  
             INSERT INTO {DATABASE_INGRESS_TABLE} (  
-                channel_id, message_type, message_id, timestamp_from_endpoint,   
-                local_timestamp_from_endpoint, local_timezone_from_endpoint,   
-                service_url, from_id, from_name, conversation_id,   
-                attachment_exists, recipient_id, recipient_name,   
-                channeldata_slack_app_id, channeldata_slack_event_id,   
-                channeldata_slack_event_time, message_payload, interacting_user_id,   
+                channel_id, message_type, message_id, timestamp_from_endpoint,  
+                local_timestamp_from_endpoint, local_timezone_from_endpoint,  
+                service_url, from_id, from_name, conversation_id,  
+                attachment_exists, recipient_id, recipient_name,  
+                channeldata_slack_app_id, channeldata_slack_event_id,  
+                channeldata_slack_event_time, message_payload, interacting_user_id,  
                 channeldata_slack_thread_ts  
             ) VALUES (  
-                %(channel_id)s, %(message_type)s, %(message_id)s, %(timestamp_from_endpoint)s,   
-                %(local_timestamp_from_endpoint)s, %(local_timezone_from_endpoint)s,   
-                %(service_url)s, %(from_id)s, %(from_name)s, %(conversation_id)s,   
-                %(attachment_exists)s, %(recipient_id)s, %(recipient_name)s,   
-                %(channeldata_slack_app_id)s, %(channeldata_slack_event_id)s,   
-                %(channeldata_slack_event_time)s, %(message_payload)s, %(interacting_user_id)s,   
+                %(channel_id)s, %(message_type)s, %(message_id)s, %(timestamp_from_endpoint)s,  
+                %(local_timestamp_from_endpoint)s, %(local_timezone_from_endpoint)s,  
+                %(service_url)s, %(from_id)s, %(from_name)s, %(conversation_id)s,  
+                %(attachment_exists)s, %(recipient_id)s, %(recipient_name)s,  
+                %(channeldata_slack_app_id)s, %(channeldata_slack_event_id)s,  
+                %(channeldata_slack_event_time)s, %(message_payload)s, %(interacting_user_id)s,  
                 %(channeldata_slack_thread_ts)s  
             ) RETURNING pk_id, message_id  
         """  
@@ -129,3 +129,39 @@ def log_invocation_to_db(data):
 # Function to convert timestamp to datetime  
 def convert_timestamp_to_datetime(timestamp):  
     return datetime.fromtimestamp(timestamp, tz=timezone.utc)  
+  
+def save_or_fetch_file_hash(hash_value, file_payload, uploaded_by):  
+    connection = get_db_connection()  
+    if connection is None:  
+        logging.error("No database connection available. Skipping save or fetch file operation.")  
+        return None  
+  
+    try:  
+        cursor = connection.cursor()  
+          
+        # Check if the hash value already exists  
+        query_check = "SELECT pk_id, file_payload FROM public.bot_file_upload_hashes WHERE hash_value = %s"  
+        cursor.execute(query_check, (hash_value,))  
+        existing_record = cursor.fetchone()  
+  
+        if existing_record:  
+            logging.info(f"File with hash {hash_value} already exists. Fetching existing record.")  
+            return existing_record[1]  # Return the existing file payload  
+          
+        # Insert the new file record  
+        query_insert = """  
+            INSERT INTO public.bot_file_upload_hashes (hash_value, file_payload, uploaded_by)  
+            VALUES (%s, %s, %s) RETURNING pk_id  
+        """  
+        cursor.execute(query_insert, (hash_value, psycopg2.Binary(file_payload), uploaded_by))  
+        connection.commit()  
+        pk_id = cursor.fetchone()[0]  
+        cursor.close()  
+        logging.info(f"File with hash {hash_value} saved successfully with pk_id: {pk_id}")  
+        return None  
+  
+    except Exception as e:  
+        logging.error(f"Failed to save or fetch file: {e}")  
+        return None  
+    finally:  
+        release_db_connection(connection)  

@@ -5,6 +5,7 @@ import hashlib
 from botbuilder.schema import Activity, ActivityTypes  
 from utils.openai_utils import process_and_summarize_text, extract_text_from_pdf, get_openai_image_response  
 from constants import *  
+from utils.azure_postgres_utils import save_or_fetch_file_hash  
   
 def generate_file_hash(file_content):  
     """Generate a SHA-256 hash for the given file content."""  
@@ -33,16 +34,23 @@ async def process_attachment(turn_context, attachment, process_func, success_mes
         response = requests.get(attachment.content_url)  
         response.raise_for_status()  
         file_content = response.content  
-          
+  
         # Generate hash for the file content  
         file_hash = generate_file_hash(file_content)  
         logging.info(f"Generated hash for the uploaded document: {file_hash}")  
-          
+  
+        # Save or fetch the file based on hash  
+        existing_file_payload = save_or_fetch_file_hash(file_hash, file_content, turn_context.activity.from_property.id)  
+  
+        if existing_file_payload:  
+            logging.info(f"File with hash {file_hash} already exists. Using the existing file.")  
+            file_content = existing_file_payload  
+  
         # Proceed with processing  
         await send_message(turn_context, success_message)  
         await turn_context.send_activity(Activity(type=ActivityTypes.typing))  
         result = process_func(attachment.content_url)  
-          
+  
         await send_message(turn_context, result)  
     except Exception as e:  
         logging.error(f"Error processing attachment: {e}")  
