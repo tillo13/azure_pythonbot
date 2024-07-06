@@ -140,20 +140,30 @@ def save_or_fetch_file_hash(hash_value, openai_response, uploaded_by):
         cursor = connection.cursor()  
   
         # Check if the hash value already exists  
-        query_check = "SELECT pk_id, file_payload FROM public.bot_file_upload_hashes WHERE hash_value = %s"  
+        query_check = "SELECT pk_id, file_payload, reuse_count FROM public.bot_file_upload_hashes WHERE hash_value = %s"  
         cursor.execute(query_check, (hash_value,))  
         existing_record = cursor.fetchone()  
   
         if existing_record:  
             logging.info(f"File with hash {hash_value} already exists. Fetching existing record.")  
+              
+            # Increment the reuse count  
+            pk_id = existing_record[0]  
+            current_reuse_count = existing_record[2]  
+            new_reuse_count = current_reuse_count + 1  
+              
+            query_update = "UPDATE public.bot_file_upload_hashes SET reuse_count = %s WHERE pk_id = %s"  
+            cursor.execute(query_update, (new_reuse_count, pk_id))  
+            connection.commit()  
+              
             return existing_record[1]  # Return the existing OpenAI response  
   
         # Insert the new file record  
         query_insert = """  
-            INSERT INTO public.bot_file_upload_hashes (hash_value, file_payload, uploaded_by)  
-            VALUES (%s, %s, %s) RETURNING pk_id  
+            INSERT INTO public.bot_file_upload_hashes (hash_value, file_payload, uploaded_by, reuse_count)  
+            VALUES (%s, %s, %s, %s) RETURNING pk_id  
         """  
-        cursor.execute(query_insert, (hash_value, openai_response, uploaded_by))  
+        cursor.execute(query_insert, (hash_value, openai_response, uploaded_by, 0))  
         connection.commit()  
         pk_id = cursor.fetchone()[0]  
         cursor.close()  
