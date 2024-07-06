@@ -94,6 +94,32 @@ async def handle_slack_message(turn_context: TurnContext):
         user_message = activity.text  
         logging.debug(f"Received message")  
   
+        # Extract additional Slack-specific fields from the activity object  
+        slack_event = activity.channel_data.get("SlackMessage", {}).get("event", {})  
+        try:  
+            channeldata_slack_app_id = slack_event.get("app_id", None)  
+        except KeyError:  
+            channeldata_slack_app_id = None  
+  
+        try:  
+            channeldata_slack_event_id = slack_event.get("event_id", None)  
+        except KeyError:  
+            channeldata_slack_event_id = None  
+  
+        try:  
+            channeldata_slack_event_time = slack_event.get("event_time", None)  
+        except KeyError:  
+            channeldata_slack_event_time = None  
+  
+        try:  
+            parent_message_id = activity.reply_to_id  
+        except AttributeError:  
+            parent_message_id = None  
+  
+        conversation_turn = None  # You need a way to calculate this if applicable  
+        bot_response_payload = None  # Assuming you will get this after bot response  
+        created_via = "slack"  
+  
         # Log invocation details  
         invocation_data = {  
             "channel_id": activity.channel_id,  
@@ -109,12 +135,17 @@ async def handle_slack_message(turn_context: TurnContext):
             "attachment_exists": bool(activity.attachments),  
             "recipient_id": activity.recipient.id,  
             "recipient_name": activity.recipient.name,  
-            "channeldata_slack_app_id": activity.channel_data.get("SlackMessage", {}).get("event", {}).get("app_id"),  
-            "channeldata_slack_event_id": activity.channel_data.get("SlackMessage", {}).get("event", {}).get("event_id"),  
-            "channeldata_slack_event_time": activity.channel_data.get("SlackMessage", {}).get("event", {}).get("event_time"),  
+            "channeldata_slack_app_id": channeldata_slack_app_id,  
+            "channeldata_slack_event_id": channeldata_slack_event_id,  
+            "channeldata_slack_event_time": channeldata_slack_event_time,  
             "message_payload": activity.text,  # Extract only the text content  
+            "bot_response_id": None,  
+            "parent_message_id": parent_message_id,  
+            "conversation_turn": conversation_turn,  
+            "bot_response_payload": bot_response_payload,  
             "interacting_user_id": get_user_id(activity),  
-            "channeldata_slack_thread_ts": get_parent_thread_ts(activity)  
+            "channeldata_slack_thread_ts": get_parent_thread_ts(activity),  
+            "created_via": created_via  
         }  
         log_invocation_to_db(invocation_data)  
   
