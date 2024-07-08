@@ -72,6 +72,10 @@ async def handle_default_message(turn_context: TurnContext):
         logging.debug("Full JSON response from OpenAI:")  
         logging.debug(json.dumps(openai_response_data, indent=2))  
   
+        # Extract token usage from the response  
+        input_tokens = openai_response_data.get('usage', {}).get('prompt_tokens', 0)  
+        output_tokens = openai_response_data.get('usage', {}).get('completion_tokens', 0)  
+  
         # Parse the OpenAI response  
         try:  
             if 'choices' in openai_response_data and isinstance(openai_response_data['choices'], list):  
@@ -92,8 +96,8 @@ async def handle_default_message(turn_context: TurnContext):
         # Calculate the response time  
         response_time = calculate_elapsed_time(start_time)  
   
-        # Generate the footer with the response time  
-        footer = generate_footer("webchat", response_time)  
+        # Generate the footer with the response time and token counts  
+        footer = generate_footer("webchat", response_time, model_name, input_tokens, output_tokens)  
   
         # Create an Adaptive Card with the response and footer  
         adaptive_card = create_adaptive_card(bot_response, footer)  

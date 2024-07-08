@@ -53,16 +53,13 @@ PRICING = {
     # Add more models and pricing as needed  
 }  
   
+
 def calculate_cost(model_name: str, input_tokens: int, output_tokens: int) -> float:  
     """Calculate the estimated cost based on the model and token usage."""  
     logging.debug(f"Calculating cost for model {model_name} with input tokens {input_tokens} and output tokens {output_tokens}")  
   
-    # Check if the model name exists in the pricing dictionary  
-    if model_name in PRICING:  
-        model_pricing = PRICING[model_name]  
-    else:  
-        logging.warning(f"Model name {model_name} not found in pricing dictionary. Defaulting to 'gpt-4o'.")  
-        model_pricing = PRICING["gpt-4o"]  
+    # Default to "gpt-4o" pricing if model name not found  
+    model_pricing = PRICING.get(model_name, PRICING["gpt-4o"])  
   
     input_cost_per_million = model_pricing["input"]  
     output_cost_per_million = model_pricing["output"]  
@@ -71,8 +68,13 @@ def calculate_cost(model_name: str, input_tokens: int, output_tokens: int) -> fl
     output_cost = (output_tokens / 1_000_000) * output_cost_per_million  
     total_cost = input_cost + output_cost  
   
+    # Set minimum cost display threshold  
+    if total_cost < 0.0001:  
+        total_cost = 0.0001  
+  
     logging.debug(f"Calculated cost for model {model_name}: input_cost={input_cost}, output_cost={output_cost}, total_cost={total_cost}")  
     return total_cost  
+
 
 
   
@@ -96,7 +98,6 @@ def num_tokens_from_messages(messages, model="gpt-4"):
     return num_tokens  
   
 # Function to call OpenAI API for text messages  
-
 def get_openai_response(user_message, chat_history=None, source=None):  
     logging.debug("Entered get_openai_response function")  
     try:  
@@ -150,6 +151,7 @@ def get_openai_response(user_message, chat_history=None, source=None):
             return {"error": "Your message triggered the content filter. Please modify your message and try again."}, OPENAI_MODEL  
         logging.error(f"Error calling OpenAI API: {e}")  
         return {"error": f"Sorry, I couldn't process your request. Error: {e}"}, OPENAI_MODEL  
+
 
 
 
