@@ -22,16 +22,16 @@ def download_and_encode_image(url):
         logging.error(f"Error downloading image: {e}")  
         return None  
   
-async def send_message(turn_context, message):  
-    await turn_context.send_activity(Activity(  
+async def send_message(turn_context, message, thread_ts=None):  
+    activity = Activity(  
         type=ActivityTypes.message,  
         text=message  
-    ))  
+    )  
+    if thread_ts:  
+        activity.channel_data = {"thread_ts": thread_ts}  
+    await turn_context.send_activity(activity)  
   
-
-
-  
-async def process_attachment(turn_context, attachment, process_func, success_message, error_message):  
+async def process_attachment(turn_context, attachment, process_func, success_message, error_message, thread_ts=None):  
     try:  
         # Download the file content  
         response = requests.get(attachment.content_url)  
@@ -47,18 +47,18 @@ async def process_attachment(turn_context, attachment, process_func, success_mes
   
         if existing_openai_response:  
             logging.info(f"File with hash {file_hash} already exists. Using the existing OpenAI response.")  
-            await send_message(turn_context, existing_openai_response)  
+            await send_message(turn_context, existing_openai_response, thread_ts)  
         else:  
             # Process the file and get OpenAI response  
             openai_response = process_func(attachment.content_url)  
             save_or_fetch_file_hash(file_hash, openai_response, turn_context.activity.from_property.id)  
   
-            await send_message(turn_context, success_message)  
+            await send_message(turn_context, success_message, thread_ts)  
             await turn_context.send_activity(Activity(type=ActivityTypes.typing))  
-            await send_message(turn_context, openai_response)  
+            await send_message(turn_context, openai_response, thread_ts)  
     except Exception as e:  
         logging.error(f"Error processing attachment: {e}")  
-        await send_message(turn_context, error_message)  
+        await send_message(turn_context, error_message, thread_ts)  
   
 def process_image(url):  
     base64_image = download_and_encode_image(url)  
@@ -90,13 +90,12 @@ def process_pdf(url):
             raise ValueError("Failed to extract text from PDF")  
     else:  
         raise ValueError("Failed to download PDF")  
-
   
 async def handle_image_attachment(turn_context, attachment, thread_ts=None):  
-    await process_attachment(turn_context, attachment, process_image, MSG_IMAGE_RECEIVED, MSG_IMAGE_ERROR)  
+    await process_attachment(turn_context, attachment, process_image, MSG_IMAGE_RECEIVED, MSG_IMAGE_ERROR, thread_ts)  
   
 async def handle_text_attachment(turn_context, attachment, thread_ts=None):  
-    await process_attachment(turn_context, attachment, process_text, MSG_TEXT_RECEIVED, MSG_TEXT_ERROR)  
+    await process_attachment(turn_context, attachment, process_text, MSG_TEXT_RECEIVED, MSG_TEXT_ERROR, thread_ts)  
   
 async def handle_pdf_attachment(turn_context, attachment, thread_ts=None):  
-    await process_attachment(turn_context, attachment, process_pdf, MSG_PDF_RECEIVED, MSG_PDF_ERROR)  
+    await process_attachment(turn_context, attachment, process_pdf, MSG_PDF_RECEIVED, MSG_PDF_ERROR, thread_ts)  
