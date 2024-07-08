@@ -86,7 +86,8 @@ async def handle_attachments(turn_context, attachments, thread_ts):
             await handle_text_attachment(turn_context, attachment, thread_ts)  
         elif attachment.content_type == "application/pdf":  
             await handle_pdf_attachment(turn_context, attachment, thread_ts)  
-  
+
+
 async def handle_slack_message(turn_context: TurnContext):  
     activity = turn_context.activity  
     try:  

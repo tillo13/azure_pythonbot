@@ -53,13 +53,14 @@ PRICING = {
     # Add more models and pricing as needed  
 }  
   
-
 def calculate_cost(model_name: str, input_tokens: int, output_tokens: int) -> float:  
-    """Calculate the estimated cost based on the model and token usage."""  
     logging.debug(f"Calculating cost for model {model_name} with input tokens {input_tokens} and output tokens {output_tokens}")  
-  
-    # Default to "gpt-4o" pricing if model name not found  
-    model_pricing = PRICING.get(model_name, PRICING["gpt-4o"])  
+      
+    # Default to "gpt-4o" pricing if model name contains "gpt-4o"  
+    if "gpt-4o" in model_name:  
+        model_pricing = PRICING["gpt-4o"]  
+    else:  
+        model_pricing = PRICING.get(model_name, PRICING["gpt-4o"])  
   
     input_cost_per_million = model_pricing["input"]  
     output_cost_per_million = model_pricing["output"]  
@@ -74,6 +75,7 @@ def calculate_cost(model_name: str, input_tokens: int, output_tokens: int) -> fl
   
     logging.debug(f"Calculated cost for model {model_name}: input_cost={input_cost}, output_cost={output_cost}, total_cost={total_cost}")  
     return total_cost  
+
 
 
 
