@@ -90,9 +90,9 @@ async def handle_attachments(turn_context, attachments, thread_ts):
 async def handle_slack_message(turn_context: TurnContext):  
     activity = turn_context.activity  
     try:  
-        logging.debug(f"Payload passed from app.py via slack_handler.py")  
+        logging.debug("Payload passed from app.py via slack_handler.py")  
         user_message = activity.text  
-        logging.debug(f"Received message")  
+        logging.debug("Received message")  
   
         # Extract additional Slack-specific fields from the activity object  
         slack_event = activity.channel_data.get("SlackMessage", {}).get("event", {})  
@@ -197,6 +197,7 @@ async def handle_slack_message(turn_context: TurnContext):
             usage = openai_response_data.get('usage', {})  
             input_tokens = usage.get('prompt_tokens', 0)  
             output_tokens = usage.get('completion_tokens', 0)  
+            logging.debug(f"Token usage - Prompt tokens: {input_tokens}, Completion tokens: {output_tokens}")  
   
             formatted_bot_response = convert_openai_response_to_slack_mrkdwn(bot_response)  
             response_time = calculate_elapsed_time(start_time)  
