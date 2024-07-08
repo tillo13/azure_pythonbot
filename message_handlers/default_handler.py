@@ -1,5 +1,3 @@
-# default_handler.py  
-  
 import logging  
 from botbuilder.core import TurnContext  
 from botbuilder.schema import Attachment, Activity, ActivityTypes  
@@ -7,7 +5,7 @@ from utils.openai_utils import get_openai_response
 from utils.footer_utils import generate_footer  
 from utils.datetime_utils import get_current_time, calculate_elapsed_time  
 from utils.uploaded_file_utils import handle_image_attachment, handle_text_attachment, handle_pdf_attachment  
-from utils.special_commands_utils import handle_special_commands  # Import the special commands handler  
+from utils.special_commands_utils import handle_special_commands  
 from constants import *  
 import json  
   
@@ -70,8 +68,26 @@ async def handle_default_message(turn_context: TurnContext):
         start_time = get_current_time()  
   
         # Get response from OpenAI with source parameter  
-        openai_response_data = get_openai_response(user_message, source="from_default_handler")  
-        bot_response = openai_response_data['choices'][0]['message']['content']  
+        openai_response_data, model_name = get_openai_response(user_message, source="from_default_handler")  
+        logging.debug("Full JSON response from OpenAI:")  
+        logging.debug(json.dumps(openai_response_data, indent=2))  
+  
+        # Parse the OpenAI response  
+        try:  
+            if 'choices' in openai_response_data and isinstance(openai_response_data['choices'], list):  
+                if len(openai_response_data['choices']) > 0 and 'message' in openai_response_data['choices'][0]:  
+                    if 'content' in openai_response_data['choices'][0]['message']:  
+                        bot_response = openai_response_data['choices'][0]['message']['content']  
+                    else:  
+                        raise KeyError("Key 'content' not found in the OpenAI response 'message'.")  
+                else:  
+                    raise KeyError("Key 'message' not found in the OpenAI response 'choices'.")  
+            else:  
+                raise KeyError("Key 'choices' not found or is not a list in the OpenAI response.")  
+        except (KeyError, TypeError, IndexError) as e:  
+            logging.error(f"Error parsing OpenAI response: {e}")  
+            await turn_context.send_activity("There was an error processing the response from OpenAI.")  
+            return  
   
         # Calculate the response time  
         response_time = calculate_elapsed_time(start_time)  
