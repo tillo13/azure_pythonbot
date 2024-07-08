@@ -11,11 +11,9 @@ from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 import json  
 from docx import Document  
 import io  
-import logging
-
+import logging  
+  
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')  
-
-
   
 # Load environment variables from .env file  
 load_dotenv()  
@@ -23,18 +21,11 @@ load_dotenv()
 ### GLOBAL VARIABLES ###  
 # API and Model Configuration  
 OPENAI_API_KEY = os.environ.get("APPSETTING_2024may22_GPT4o_API_KEY")  
-#previous version AZURE_OPENAI_ENDPOINT = "https://tillo-openai.openai.azure.com/"  
 AZURE_OPENAI_ENDPOINT = os.environ.get("APPSETTING_AZURE_OPENAI_ENDPOINT")  
-
-#previous version AZURE_OPENAI_API_VERSION = "2024-02-01"  
 AZURE_OPENAI_API_VERSION = os.environ.get("APPSETTING_AZURE_OPENAI_API_VERSION")  
-
-# previous version OPENAI_MODEL = "2024may22_gpt4o_tillo"  
-OPENAI_MODEL = os.environ.get("APPSETTING_CHAT_COMPLETIONS_DEPLOYMENT_NAME")
-
-  
+OPENAI_MODEL = os.environ.get("APPSETTING_CHAT_COMPLETIONS_DEPLOYMENT_NAME")  
 # Messages and Prompts  
-SYSTEM_PROMPT_TEXT = "You are an astute AI assitant."  
+SYSTEM_PROMPT_TEXT = "You are an astute AI assistant."  
 IMAGE_PROMPT_TEXT = "Describe this image in as much detail as possible."  
 INITIAL_SUMMARIZATION_PROMPT = "We will be creating a patent for teradata, I want you to summarize all the key points into bullet points of top takeaways from this document in up to 20 bullet points of key things to consider"  
 FINAL_SUMMARIZATION_PROMPT = "Provide a verbose summary of the text given citing key topics if possible, and highlighting the most important points with up to 20 bullet points capturing the key takeaways . Even if some context is missing or have statements saying incomplete, make your most informed analysis based on the available data."  
@@ -42,9 +33,7 @@ BRIEF_SUMMARIZATION_PROMPT = "This text is relatively brief, but attempt to extr
   
 # Initialize Tiktoken encoder  
 encoding = tiktoken.encoding_for_model("gpt-4")  
-
-
-# Pricing details for openai as of 2024july3
+# Pricing details for openai as of 2024july3PRICING = {  
 PRICING = {  
     "gpt-4o": {"input": 5.00, "output": 15.00},  
     "gpt-4o-2024-05-13": {"input": 5.00, "output": 15.00},  
@@ -55,7 +44,7 @@ PRICING = {
   
 def calculate_cost(model_name: str, input_tokens: int, output_tokens: int) -> float:  
     logging.debug(f"Calculating cost for model {model_name} with input tokens {input_tokens} and output tokens {output_tokens}")  
-      
+  
     # Default to "gpt-4o" pricing if model name contains "gpt-4o"  
     if "gpt-4o" in model_name:  
         model_pricing = PRICING["gpt-4o"]  
@@ -75,10 +64,6 @@ def calculate_cost(model_name: str, input_tokens: int, output_tokens: int) -> fl
   
     logging.debug(f"Calculated cost for model {model_name}: input_cost={input_cost}, output_cost={output_cost}, total_cost={total_cost}")  
     return total_cost  
-
-
-
-
   
 def num_tokens_from_string(string: str) -> int:  
     """Returns the number of tokens in a text string."""  
@@ -144,7 +129,7 @@ def get_openai_response(user_message, chat_history=None, source=None):
             if source:  
                 completion_response['source'] = source  
             logging.debug("Exiting get_openai_response function")  
-            return {"choices": [{"message": {"content": response_message}}]}, model_name  # Return the response message and model name  
+            return {"choices": [{"message": {"content": response_message}}], "usage": completion_response.get("usage", {})}, model_name  # Return the response message, usage, and model name  
         else:  
             return {"error": "No choices in response."}, OPENAI_MODEL  
   
@@ -153,11 +138,7 @@ def get_openai_response(user_message, chat_history=None, source=None):
             return {"error": "Your message triggered the content filter. Please modify your message and try again."}, OPENAI_MODEL  
         logging.error(f"Error calling OpenAI API: {e}")  
         return {"error": f"Sorry, I couldn't process your request. Error: {e}"}, OPENAI_MODEL  
-
-
-
-
-
+  
 def moderate_content(content):  
     logging.debug("Entered moderate_content function")  
     try:  
@@ -165,7 +146,6 @@ def moderate_content(content):
             azure_endpoint=AZURE_OPENAI_ENDPOINT,  
             api_key=OPENAI_API_KEY,  
             api_version=AZURE_OPENAI_API_VERSION  
-
         )  
         response = client.moderations.create(input=content)  
         if response is None:  
@@ -177,10 +157,6 @@ def moderate_content(content):
     except Exception as e:  
         logging.error(f"Error during content moderation: {e}")  
         return None  
-
-
-
-
   
 # Function to call OpenAI API for image messages  
 def get_openai_image_response(image_data_url):  
@@ -207,12 +183,10 @@ def get_openai_image_response(image_data_url):
                 ]  
             }  
         ]  
-          
+  
         # Log the message payload  
-        #print("Sending the following payload to OpenAI:")  
         print("Sending a payload to OpenAI... (debug by #uncommenting openai_utils.py...)")  
-        #print(message_text)  
-          
+  
         completion = client.chat.completions.create(  
             model=OPENAI_MODEL,  
             messages=message_text,  
@@ -243,10 +217,10 @@ def summarize_text_with_openai(chunk, instruction):
         ]  
         print("Sending the following input to OpenAI:")  
         print(message_text)  # Print the message being sent to OpenAI  
-          
+  
         input_token_count = num_tokens_from_messages(message_text)  
         max_response_tokens = min(128000 - input_token_count, 4000)  # Default to 4000 if under the limit  
-          
+  
         completion = client.chat.completions.create(  
             model=OPENAI_MODEL,  
             messages=message_text,  
@@ -260,7 +234,7 @@ def summarize_text_with_openai(chunk, instruction):
         completion_response = completion.dict()  
         print("Received the following response from OpenAI:")  
         print(completion_response)  # Print the response received from OpenAI  
-          
+  
         if 'choices' in completion_response and len(completion_response['choices']) > 0:  
             return completion_response['choices'][0]['message']['content'], completion_response.get('usage', {})  
         else:  
@@ -275,7 +249,7 @@ def chunk_text(text, max_chunk_size):
     chunks = []  
     current_chunk = []  
     current_length = 0  
-      
+  
     for word in words:  
         word_length = len(encoding.encode(word))  
         if current_length + word_length + 1 <= max_chunk_size:  
@@ -306,13 +280,13 @@ def process_and_summarize_text(input_text, source, attempt_sizes):
     token_estimate = estimate_tokens_from_chars(char_count)  
     print(f"Size of input text: {char_count} characters")  
     print(f"Initial token estimate: {token_estimate} tokens")  
-      
+  
     chunks = chunk_text(input_text, 127000)  # Updated chunk size for 127,000 tokens  
     chunk_responses = []  
     total_completion_tokens = 0  
     total_prompt_tokens = 0  
     total_tokens = 0  
-      
+  
     for i, chunk in enumerate(chunks):  
         print(f"Processing chunk {i + 1}/{len(chunks)}")  
         response, usage = summarize_text_with_openai(chunk, INITIAL_SUMMARIZATION_PROMPT)  
@@ -325,11 +299,11 @@ def process_and_summarize_text(input_text, source, attempt_sizes):
                 total_prompt_tokens += prompt_tokens  
                 total_tokens += completion_tokens + prompt_tokens  
                 print(f"Chunk {i + 1}/{len(chunks)} processed: {completion_tokens} completion tokens, {prompt_tokens} prompt tokens")  
-      
+  
     second_input = ' '.join(filter(None, chunk_responses))  
     final_summary_logic = FINAL_SUMMARIZATION_PROMPT if len(second_input) > 100 else BRIEF_SUMMARIZATION_PROMPT  
     final_summary_response, final_usage = summarize_text_with_openai(second_input, final_summary_logic)  
-      
+  
     if final_summary_response:  
         final_summary = final_summary_response  
         if final_usage:  
@@ -338,11 +312,11 @@ def process_and_summarize_text(input_text, source, attempt_sizes):
             total_tokens += final_usage.get('total_tokens', 0)  
     else:  
         final_summary = None  
-      
+  
     elapsed_time = time.time() - start_time  
     elapsed_time_str = str(datetime.timedelta(seconds=elapsed_time))  
     input_cost, output_cost, total_cost = estimate_cost(total_prompt_tokens, total_completion_tokens)  
-      
+  
     processing_summary = (  
         f"**====PROCESSING SUMMARY====**\n"  
         f"**Source:** {source}\n | "  
@@ -354,7 +328,7 @@ def process_and_summarize_text(input_text, source, attempt_sizes):
         f"**Actual cost based on total tokens:** ${total_cost:.4f}\n | "  
         f"**Total execution time:** {elapsed_time_str}\n | "  
     )  
-      
+  
     return final_summary + "\n\n" + processing_summary if final_summary else processing_summary  
   
 # Function to read file contents  
@@ -379,7 +353,7 @@ def extract_text_from_pdf(pdf_path):
     except Exception as e:  
         print(f"Error reading PDF file {pdf_path}: {e}")  
         return None  
-    
+  
 def extract_text_from_docx(file_content):  
     try:  
         # Create a file-like object from the byte stream  
@@ -390,11 +364,8 @@ def extract_text_from_docx(file_content):
     except Exception as e:  
         print(f"Error reading DOCX file: {e}")  
         return None  
-
   
 #####CHATBOT SPECIFIC CODE#####  
-  
-
 # Function to load chat history from a JSON file  
 def load_chat_history():  
     try:  
@@ -419,5 +390,4 @@ def update_chat_history(chat_history, user_message, bot_response):
     chat_history.append({"role": "user", "content": user_message})  
     chat_history.append({"role": "assistant", "content": bot_response})  
     save_chat_history(chat_history)  
-  
 #####END OF CHATBOT SPECIFIC CODE#####  

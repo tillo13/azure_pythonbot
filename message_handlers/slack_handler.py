@@ -86,7 +86,7 @@ async def handle_attachments(turn_context, attachments, thread_ts):
             await handle_text_attachment(turn_context, attachment, thread_ts)  
         elif attachment.content_type == "application/pdf":  
             await handle_pdf_attachment(turn_context, attachment, thread_ts)  
-
+  
 async def handle_slack_message(turn_context: TurnContext):  
     activity = turn_context.activity  
     try:  
@@ -96,26 +96,10 @@ async def handle_slack_message(turn_context: TurnContext):
   
         # Extract additional Slack-specific fields from the activity object  
         slack_event = activity.channel_data.get("SlackMessage", {}).get("event", {})  
-        try:  
-            channeldata_slack_app_id = slack_event.get("app_id", None)  
-        except KeyError:  
-            channeldata_slack_app_id = None  
-  
-        try:  
-            channeldata_slack_event_id = slack_event.get("event_id", None)  
-        except KeyError:  
-            channeldata_slack_event_id = None  
-  
-        try:  
-            channeldata_slack_event_time = slack_event.get("event_time", None)  
-        except KeyError:  
-            channeldata_slack_event_time = None  
-  
-        try:  
-            parent_message_id = activity.reply_to_id  
-        except AttributeError:  
-            parent_message_id = None  
-  
+        channeldata_slack_app_id = slack_event.get("app_id", None)  
+        channeldata_slack_event_id = slack_event.get("event_id", None)  
+        channeldata_slack_event_time = slack_event.get("event_time", None)  
+        parent_message_id = activity.reply_to_id  
         conversation_turn = None  # You need a way to calculate this if applicable  
         bot_response_payload = None  # Assuming you will get this after bot response  
         created_via = "slack"  
@@ -194,6 +178,7 @@ async def handle_slack_message(turn_context: TurnContext):
             bot_response = openai_response_data['choices'][0]['message']['content']  
             logging.debug(f"OpenAI response: {bot_response}")  
   
+            # Ensure token usage is correctly extracted  
             usage = openai_response_data.get('usage', {})  
             input_tokens = usage.get('prompt_tokens', 0)  
             output_tokens = usage.get('completion_tokens', 0)  
