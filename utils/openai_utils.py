@@ -55,7 +55,15 @@ PRICING = {
   
 def calculate_cost(model_name: str, input_tokens: int, output_tokens: int) -> float:  
     """Calculate the estimated cost based on the model and token usage."""  
-    model_pricing = PRICING.get(model_name, PRICING["gpt-4o"])  # Default to "gpt-4o" if model not found  
+    logging.debug(f"Calculating cost for model {model_name} with input tokens {input_tokens} and output tokens {output_tokens}")  
+  
+    # Check if the model name exists in the pricing dictionary  
+    if model_name in PRICING:  
+        model_pricing = PRICING[model_name]  
+    else:  
+        logging.warning(f"Model name {model_name} not found in pricing dictionary. Defaulting to 'gpt-4o'.")  
+        model_pricing = PRICING["gpt-4o"]  
+  
     input_cost_per_million = model_pricing["input"]  
     output_cost_per_million = model_pricing["output"]  
   
@@ -65,6 +73,7 @@ def calculate_cost(model_name: str, input_tokens: int, output_tokens: int) -> fl
   
     logging.debug(f"Calculated cost for model {model_name}: input_cost={input_cost}, output_cost={output_cost}, total_cost={total_cost}")  
     return total_cost  
+
 
   
 def num_tokens_from_string(string: str) -> int:  
@@ -125,7 +134,7 @@ def get_openai_response(user_message, chat_history=None, source=None):
         logging.debug(json.dumps(completion_response, indent=2))  
   
         # Extract the model name  
-        model_name = completion_response.get('model', 'gpt4o')  
+        model_name = completion_response.get('model', OPENAI_MODEL)  
   
         if 'choices' in completion_response and len(completion_response['choices']) > 0:  
             response_message = completion_response['choices'][0]['message']['content']  
@@ -134,13 +143,13 @@ def get_openai_response(user_message, chat_history=None, source=None):
             logging.debug("Exiting get_openai_response function")  
             return {"choices": [{"message": {"content": response_message}}]}, model_name  # Return the response message and model name  
         else:  
-            return {"error": "No choices in response."}, 'gpt4o'  
+            return {"error": "No choices in response."}, OPENAI_MODEL  
   
     except Exception as e:  
         if 'content_filter' in str(e):  
-            return {"error": "Your message triggered the content filter. Please modify your message and try again."}, 'gpt4o'  
+            return {"error": "Your message triggered the content filter. Please modify your message and try again."}, OPENAI_MODEL  
         logging.error(f"Error calling OpenAI API: {e}")  
-        return {"error": f"Sorry, I couldn't process your request. Error: {e}"}, 'gpt4o'  
+        return {"error": f"Sorry, I couldn't process your request. Error: {e}"}, OPENAI_MODEL  
 
 
 
