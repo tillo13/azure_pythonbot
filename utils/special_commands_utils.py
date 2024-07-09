@@ -3,14 +3,12 @@ import json
 import time  
 from botbuilder.core import TurnContext  
 import logging  
-from utils.jira_utils import fetch_issue_details, create_jira_task
+from utils.jira_utils import fetch_issue_details, create_jira_task  
 from utils.footer_utils import generate_footer  
-from utils.slack_utils import create_slack_message, get_last_5_messages, post_message_to_slack, add_reaction_to_message, remove_reaction_from_message
+from utils.slack_utils import create_slack_message, post_message_to_slack, add_reaction_to_message, remove_reaction_from_message  
 import os  
-
 from .person_search_utils import search_person  
-
-
+  
 SLACK_TOKEN = os.environ.get("APPSETTING_SLACK_TOKEN")  
   
 def extract_channel_id(conversation_id):  
@@ -27,7 +25,7 @@ def extract_jira_issue_key(input_str):
     """  
     # Regular expression to match JIRA issue key (case-insensitive)  
     issue_key_pattern = re.compile(r'[A-Z]+-\d+', re.IGNORECASE)  
-      
+  
     # Check if the input is a URL and extract the issue key  
     if "browse" in input_str:  
         match = issue_key_pattern.search(input_str)  
@@ -41,7 +39,6 @@ def extract_jira_issue_key(input_str):
   
     return None  
   
-
 def find_latest_command_thread_ts(messages, command):  
     """  
     Find the latest thread_ts for the given command from the last 5 messages.  
@@ -52,7 +49,6 @@ def find_latest_command_thread_ts(messages, command):
             return message.get('thread_ts') or message.get('ts')  
     return None  
   
-
 def extract_thread_ts(activity):  
     """  
     Extract the thread_ts from the activity.  
@@ -100,16 +96,10 @@ async def handle_special_commands(turn_context: TurnContext) -> bool:
                     f"*$test*: `Invokes a special test path.`\n\n"  
                     f"*$formats*: `Displays formatting values that work for Slack.`\n\n"  
                     f"*$jira <issue_key> or <JIRA URL>*: `Fetches and displays details of the specified JIRA issue.`\n\n"  
+                    f"*$create_jira <subject>*: `Creates a new JIRA ticket with the specified subject.`\n\n"  
                     f"*$person <name>*: `Searches for the specified person and displays their information.`\n\n"  
                 )  
                 post_message_to_slack(token, channel_id, help_message, thread_ts=thread_ts)  
-
-
-
-
-
-
-
             elif command == "jira":  
                 if len(command_parts) > 1:  
                     input_str = command_parts[1]  
@@ -129,16 +119,14 @@ async def handle_special_commands(turn_context: TurnContext) -> bool:
                         invalid_key_text = "Invalid JIRA issue key or URL."  
                         post_message_to_slack(token, channel_id, invalid_key_text, thread_ts=thread_ts)  
                 else:  
-                    subject = turn_context.activity.text.replace('$jira', '').strip()  
-                    if not subject:  
-                        post_message_to_slack(token, channel_id, "Please provide a subject for the JIRA issue after the command.", thread_ts=thread_ts)  
-                    else:  
-                        response_message = await create_jira_task(subject, turn_context)  
-                        post_message_to_slack(token, channel_id, response_message, thread_ts=thread_ts)  
-
-
-
-
+                    post_message_to_slack(token, channel_id, "Please provide a JIRA issue key or URL after the command.", thread_ts=thread_ts)  
+            elif command == "create_jira":  
+                subject = turn_context.activity.text.replace('$create_jira', '').strip()  
+                if not subject:  
+                    post_message_to_slack(token, channel_id, "Please provide a subject for the JIRA issue after the command.", thread_ts=thread_ts)  
+                else:  
+                    response_message = await create_jira_task(subject, turn_context)  
+                    post_message_to_slack(token, channel_id, response_message, thread_ts=thread_ts)  
             elif command == "person" and len(command_parts) > 1:  
                 person_name = command_parts[1]  
                 start_time = time.time()  # Start timing the response  
@@ -149,7 +137,7 @@ async def handle_special_commands(turn_context: TurnContext) -> bool:
                     # Create Slack message with the person search results  
                     slack_message = create_slack_message(search_results, footer)  
                     post_message_to_slack(token, channel_id, slack_message['blocks'][0]['text']['text'], thread_ts=thread_ts)  
-                      
+  
                     # Send URLs in a second message  
                     urls_message = "Here are the URLs we used to deduce this information:\n" + "\n".join(urls)  
                     post_message_to_slack(token, channel_id, urls_message, thread_ts=thread_ts)  
