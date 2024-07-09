@@ -113,6 +113,7 @@ async def create_jira_task(subject, context):
                 "labels": [default_label_title]  
             }  
         }  
+  
         issue = jira.create_issue(fields=task_data['fields'])  
         return f"Task {issue.key} has been created under {parent_key} with the subject: {subject}. You can view the task [here]({jira_server}/browse/{issue.key})."  
     except JIRAError as e:  
