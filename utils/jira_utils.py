@@ -92,21 +92,7 @@ async def create_jira_task(subject, context):
             "fields": {  
                 "project": {"key": project_name},  
                 "summary": subject,  
-                "description": {  
-                    "type": "doc",  
-                    "version": 1,  
-                    "content": [  
-                        {  
-                            "type": "paragraph",  
-                            "content": [  
-                                {  
-                                    "type": "text",  
-                                    "text": description_text  
-                                }  
-                            ]  
-                        }  
-                    ]  
-                },  
+                "description": description_text,  # Use plain text for description  
                 "issuetype": {"name": "Task"},  
                 "parent": {"id": await get_issue_id(parent_key)},  
                 "assignee": {"accountId": default_account_id},  
