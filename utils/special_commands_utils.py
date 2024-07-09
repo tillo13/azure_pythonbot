@@ -109,6 +109,7 @@ async def handle_special_commands(turn_context: TurnContext) -> bool:
 
 
 
+
             elif command == "jira":  
                 if len(command_parts) > 1:  
                     input_str = command_parts[1]  
@@ -134,11 +135,6 @@ async def handle_special_commands(turn_context: TurnContext) -> bool:
                     else:  
                         response_message = await create_jira_task(subject, turn_context)  
                         post_message_to_slack(token, channel_id, response_message, thread_ts=thread_ts)  
-
-
-
-
-
 
 
 
