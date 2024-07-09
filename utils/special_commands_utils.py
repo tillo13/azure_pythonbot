@@ -3,7 +3,7 @@ import json
 import time  
 from botbuilder.core import TurnContext  
 import logging  
-from utils.jira_utils import fetch_issue_details  
+from utils.jira_utils import fetch_issue_details, create_jira_task
 from utils.footer_utils import generate_footer  
 from utils.slack_utils import create_slack_message, get_last_5_messages, post_message_to_slack, add_reaction_to_message, remove_reaction_from_message
 import os  
@@ -103,24 +103,46 @@ async def handle_special_commands(turn_context: TurnContext) -> bool:
                     f"*$person <name>*: `Searches for the specified person and displays their information.`\n\n"  
                 )  
                 post_message_to_slack(token, channel_id, help_message, thread_ts=thread_ts)  
-            elif command == "jira" and len(command_parts) > 1:  
-                input_str = command_parts[1]  
-                issue_key = extract_jira_issue_key(input_str)  
-                if issue_key:  
-                    start_time = time.time()  # Start timing the response  
-                    try:  
-                        issue_details = await fetch_issue_details(issue_key)  
-                        response_time = time.time() - start_time  
-                        footer = generate_footer(platform, response_time)  
-                        # Create Slack message with the JIRA response  
-                        slack_message = create_slack_message(issue_details, footer, is_jira_response=True)  
-                        post_message_to_slack(token, channel_id, slack_message['blocks'][0]['text']['text'], thread_ts=thread_ts)  
-                    except Exception as err:  
-                        error_text = f"Error fetching JIRA issue: {err}"  
-                        post_message_to_slack(token, channel_id, error_text, thread_ts=thread_ts)  
+
+
+
+
+
+
+            elif command == "jira":  
+                if len(command_parts) > 1:  
+                    input_str = command_parts[1]  
+                    issue_key = extract_jira_issue_key(input_str)  
+                    if issue_key:  
+                        start_time = time.time()  
+                        try:  
+                            issue_details = await fetch_issue_details(issue_key)  
+                            response_time = time.time() - start_time  
+                            footer = generate_footer(platform, response_time)  
+                            slack_message = create_slack_message(issue_details, footer, is_jira_response=True)  
+                            post_message_to_slack(token, channel_id, slack_message['blocks'][0]['text']['text'], thread_ts=thread_ts)  
+                        except Exception as err:  
+                            error_text = f"Error fetching JIRA issue: {err}"  
+                            post_message_to_slack(token, channel_id, error_text, thread_ts=thread_ts)  
+                    else:  
+                        invalid_key_text = "Invalid JIRA issue key or URL."  
+                        post_message_to_slack(token, channel_id, invalid_key_text, thread_ts=thread_ts)  
                 else:  
-                    invalid_key_text = "Invalid JIRA issue key or URL."  
-                    post_message_to_slack(token, channel_id, invalid_key_text, thread_ts=thread_ts)  
+                    subject = turn_context.activity.text.replace('$jira', '').strip()  
+                    if not subject:  
+                        post_message_to_slack(token, channel_id, "Please provide a subject for the JIRA issue after the command.", thread_ts=thread_ts)  
+                    else:  
+                        response_message = await create_jira_task(subject, turn_context)  
+                        post_message_to_slack(token, channel_id, response_message, thread_ts=thread_ts)  
+
+
+
+
+
+
+
+
+
             elif command == "person" and len(command_parts) > 1:  
                 person_name = command_parts[1]  
                 start_time = time.time()  # Start timing the response  

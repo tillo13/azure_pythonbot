@@ -1,22 +1,13 @@
 # utils/jira_utils.py  
-  
 import os  
 import logging  
 from jira import JIRA, JIRAError  
 from dotenv import load_dotenv  
-import pprint
   
 # Load environment variables from .env file  
 load_dotenv()  
   
-jira_server = os.environ.get("APPSETTING_2023sept8_JIRA_SERVER", "cannot find the jira server")
-print("printing out the jira server from env variable proving we have value...  ")
-print(jira_server)
-
-print(os.environ)
-
-# Set JIRA credentials and other configuration
-
+jira_server = os.environ.get("APPSETTING_2023sept8_JIRA_SERVER")  
 username = os.environ.get('APPSETTING_2023sept8_JIRA_USERNAME')  
 api_token = os.environ.get('APPSETTING_2023sept8_JIRA_TOKEN')  
 parent_key = os.environ.get('APPSETTING_2023sept8_JIRA_PARENT_KEY')  
@@ -30,13 +21,8 @@ jira = JIRA(server=jira_server, basic_auth=(username, api_token))
 async def fetch_issue_details(issue_key):  
     try:  
         issue = jira.issue(issue_key)  
-  
-        # DEBUG: KEEP FOR LATER IF NEEDED Pretty-print the raw JIRA issue data  
-        # logging.debug("Raw JIRA issue data:")  
         logging.debug("Raw JIRA issue data received... (debug by #uncommenting in jira_utils.py)")  
-        # pprint.pprint(issue.raw)  
   
-        # Fetch comments  
         comments = [  
             {  
                 "author": comment.author.displayName,  
@@ -46,7 +32,6 @@ async def fetch_issue_details(issue_key):
             for comment in issue.fields.comment.comments  
         ]  
   
-        # Fetch child issues (subtasks or issues linked to an Epic)  
         child_issues = []  
         if issue.fields.issuetype.name.lower() == 'epic':  
             jql = f'"Epic Link" = {issue_key}'  
@@ -93,4 +78,51 @@ async def fetch_issue_details(issue_key):
         else:  
             logging.error(f"Error fetching issue details: {e}")  
             raise  
-
+  
+async def create_jira_task(subject, context):  
+    try:  
+        user_name = getattr(context.activity.from_property, 'name', None) or getattr(context.activity.from_property, 'id', 'Unknown')  
+        description_text = (  
+            f"Created by: {user_name}\n"  
+            f"Channel ID: {context.activity.channel_id}\n"  
+            f"Timestamp: {context.activity.timestamp}"  
+        )  
+  
+        task_data = {  
+            "fields": {  
+                "project": {"key": project_name},  
+                "summary": subject,  
+                "description": {  
+                    "type": "doc",  
+                    "version": 1,  
+                    "content": [  
+                        {  
+                            "type": "paragraph",  
+                            "content": [  
+                                {  
+                                    "type": "text",  
+                                    "text": description_text  
+                                }  
+                            ]  
+                        }  
+                    ]  
+                },  
+                "issuetype": {"name": "Task"},  
+                "parent": {"id": await get_issue_id(parent_key)},  
+                "assignee": {"accountId": default_account_id},  
+                "labels": [default_label_title]  
+            }  
+        }  
+        issue = jira.create_issue(fields=task_data['fields'])  
+        return f"Task {issue.key} has been created under {parent_key} with the subject: {subject}. You can view the task [here]({jira_server}/browse/{issue.key})."  
+    except JIRAError as e:  
+        logging.error(f"Error creating JIRA task: {e}")  
+        return f"An error occurred while creating the JIRA task: {e}"  
+  
+async def get_issue_id(issue_key):  
+    try:  
+        issue = jira.issue(issue_key)  
+        return issue.id  
+    except JIRAError as e:  
+        logging.error(f"Error fetching issue ID: {e}")  
+        raise  
